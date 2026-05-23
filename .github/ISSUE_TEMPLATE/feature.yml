@@ -1,0 +1,29 @@
+name: 機能要求・仕様変更
+description: 新機能の追加または既存機能の仕様変更
+title: "[機能]: "
+body:
+  - type: dropdown
+    id: spec
+    attributes:
+      label: 対象 spec
+      description: この変更が属する spec を選択してください。新規 spec の場合は「新規 spec」を選択。
+      options:
+        - 新規 spec
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景・目的
+      description: なぜこの変更が必要か
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 変更内容
+      description: どのような変更を行うか（概要）
+    validations:
+      required: true
