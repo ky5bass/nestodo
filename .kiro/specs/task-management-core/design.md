@@ -18,7 +18,9 @@ class TaskService(Protocol):
     async def update(self, id: UUID, input: UpdateTaskInput) -> UpdateResult: ...
     async def delete(self, id: UUID) -> None: ...
     async def complete(self, id: UUID, confirmed: bool, tz_offset: int) -> CompleteResult: ...
-    # update()は完了遷移検出時に内部的にcomplete()を呼び出す。complete()はDB上の未完了子孫を再帰クエリで判定。
+    # 完了経路一元化: update()は完了遷移（progress=100 or status='complete'）を検出した場合、
+    # 必ず内部的にcomplete()を呼び出す。これにより全完了経路で同一の未完了子孫チェックが適用される。
+    # complete()はDB上の未完了子孫を再帰クエリで判定し、存在すればconfirmation_requiredを返す。
     # tz_offsetは必須。即成功時は対象タスク、confirmed=true時は親と全子孫のlast_done_atをDay_Boundary基準の論理日付に設定する。
 
 class CreateTaskInput(BaseModel):
@@ -94,7 +96,9 @@ PostgreSQL ENUM: task_type_enum(`'TODO'|'SCHEDULE'`)、task_status_enum(`'incomp
 
 階層制限（最大10レベル）はService層でparent_idチェーン走査により検証。アプリケーション層で制御とした理由は再帰クエリコスト回避と制限値の柔軟な変更のため。
 
-**ビジネスルール**: progress=100→status='complete'自動設定。逆方向はprogress<100同時指定必須。update()は完了遷移検出時にcomplete()を内部呼び出し。一括完了判定はサーバー側DB状態から一元的に行い、未完了子孫ありならconfirmation_required、confirmed=trueで深さ優先全子孫完了。preview=notesの最初の改行or100文字（null/空白時は空文字列）。detail_flag=task_contentsに非空白内容があればtrue。last_done_at更新: (a) progress/actual_time更新+update_last_done=true、(b) complete()即成功時は対象タスク、(c) confirmed=true時は親+全子孫。tz_offset+Day_Boundary(午前5時)基準でDATE型保存。tz_offset欠落/-720〜840範囲外はエラー。
+**ビジネスルール**: progress=100→status='complete'自動設定。逆方向はprogress<100同時指定必須。一括完了判定はサーバー側DB状態から一元的に行い、未完了子孫ありならconfirmation_required、confirmed=trueで深さ優先全子孫完了。
+
+**完了経路の一元化不変条件**: タスクが完了状態に遷移する全サーバー経路（`update(progress=100)`、`update(status='complete')`、`complete()`直接呼び出し）は、同一の一括完了判定ロジック（DB上の未完了子孫再帰チェック）を通ること。`update()`は完了遷移を検出した場合、内部的に`complete()`を呼び出すことでこれを保証する。したがって`UpdateResult`にも`confirmation_required`が含まれる。preview=notesの最初の改行or100文字（null/空白時は空文字列）。detail_flag=task_contentsに非空白内容があればtrue。last_done_at更新: (a) progress/actual_time更新+update_last_done=true、(b) complete()即成功時は対象タスク、(c) confirmed=true時は親+全子孫。tz_offset+Day_Boundary(午前5時)基準でDATE型保存。tz_offset欠落/-720〜840範囲外はエラー。
 
 **Root_Task event_at不変条件**: Root_Task（parent_id=null）はevent_at non-null必須。create/update/move/batch全経路で適用。(1) Root_Taskのevent_at→null更新は拒否、(2) Child_Task→Root昇格時は同一操作内event_at指定or既存non-null必須、(3) Root→Child降格時はevent_at保持（降格後のnull化は別途更新で許可）。
 

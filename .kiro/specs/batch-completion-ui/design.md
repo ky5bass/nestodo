@@ -12,7 +12,8 @@
 TaskDetailPanelComponent
 ├── BatchCompletionModalComponent (MatDialog)
 └── DetailSaveService (拡張: completion routing)
-        └── TaskService.complete(id, confirmed, tz_offset)
+        └── PUT /api/tasks/{id} (完了遷移リクエスト、tz_offset付き)
+            └── サーバー側: TaskService.update() → 完了遷移検出 → complete()同一判定
 ```
 
 **設計判断**: モーダルをMatDialogで実装し、DetailPanelから直接開く方式とした。専用サービスを挟まないことで、確認フローの状態遷移をシンプルに保つためである。
@@ -34,7 +35,9 @@ saveField(taskId: string, field: string, value: unknown, options?: SaveFieldOpti
 private isCompletionTrigger(field: string, value: unknown): boolean;
 // hasChildren()は使用しない。子の有無はサーバー側で判定する。
 private startCompletionFlow(taskId: string, field: string, value: unknown): void;
-// startCompletionFlowはtz_offset（new Date().getTimezoneOffset()）を付与してTaskService.complete()を呼び出す
+// startCompletionFlowはtz_offset（new Date().getTimezoneOffset()）を付与して完了リクエストを送信する。
+// サーバー側ではPUT /api/tasks/{id}経由のupdate(progress=100/status='complete')であっても、
+// TaskService.update()が内部的にTaskService.complete()と同一の一括完了判定ロジックへ委譲する。
 ```
 
 **設計判断**: フロントエンドでの`hasChildren()`判定を廃止し、Completion_Trigger発生時は常にサーバーへ問い合わせる方式とした。display-and-filterによるフィルター済みツリーでは非表示の未完了子孫を見落とす可能性があるため、DB状態を唯一の真実の源泉とする。サーバーからtype='completed'が返れば即UI反映、type='confirmation_required'が返ればモーダル表示という単純な分岐となる。

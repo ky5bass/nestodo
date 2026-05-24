@@ -13,8 +13,7 @@ graph TD
     A[index.html] -->|link rel=manifest| B[manifest.webmanifest]
     A -->|provideServiceWorker| C[ngsw-worker.js]
     C -->|ngsw-config.json| D[App Shell Cache]
-    C -->|precache| E[offline.html]
-    F[OfflineBannerComponent] -->|navigator.onLine + online/offline events| G[オフライン状態検知]
+    F[OfflineBannerComponent] -->|navigator.onLine + online/offline events| E[オフライン状態検知]
 ```
 
 **構成要素**:
@@ -77,7 +76,7 @@ export class OfflineBannerComponent {
 }
 ```
 
-**設計判断**: Angular Signalsを使用。RxJSのObservableでも実装可能だが、単純な状態管理にはSignalsが簡潔。3秒遅延は要件4.3に基づく。
+**設計判断**: Angular Signalsを使用。RxJSのObservableでも実装可能だが、単純な状態管理にはSignalsが簡潔。3秒遅延は要件4.2に基づく。
 
 ### HTTPエラーインターセプター（オフライン時）
 
@@ -113,7 +112,7 @@ export const offlineInterceptor: HttpInterceptorFn = (req, next) => {
 }
 ```
 
-**設計判断**: App Shellは`prefetch`（インストール時に全取得）、画像等は`lazy`（初回アクセス時にキャッシュ）。起動速度とストレージ効率のバランスを取った。
+**設計判断**: App Shellは`prefetch`（インストール時に全取得）、画像等は`lazy`（初回アクセス時にキャッシュ）。起動速度とストレージ効率のバランスを取った。Angular SWはassetGroup/dataGroupに一致しないナビゲーションリクエストに対してプリキャッシュ済みの`index.html`を返すため、別途`offline.html`を用意する必要はない。オフライン時のユーザー通知はアプリ内バナーで対応する。
 
 ### manifest.webmanifest
 
@@ -139,4 +138,4 @@ export const offlineInterceptor: HttpInterceptorFn = (req, next) => {
 本featureは大部分がフレームワーク設定と静的ファイルであり、Property-Based Testingは適用しない。受け入れ基準の大半はmanifestフィールド検証やAngular SWのフレームワーク動作であり、入力空間が存在しないため。
 
 - **ユニットテスト**: `OfflineBannerComponent`の表示切替・3秒遅延、`offlineInterceptor`のエラーハンドリング、manifest必須フィールド検証
-- **統合テスト**: ビルド成果物（ngsw-worker.js、manifest、offline HTML）の存在確認、Lighthouse PWA監査
+- **統合テスト**: ビルド成果物（ngsw-worker.js、manifest、App Shell）の存在確認、Lighthouse PWA監査
