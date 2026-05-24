@@ -6,7 +6,7 @@ body:
     id: spec
     attributes:
       label: 対象 spec
-      description: この変更が属する spec を選択してください。新規 spec の場合は「新規 spec」を選択。
+      description: この変更が属する spec を選択してください。判断できない場合は「未定（後で判断）」を選択。
       options:
         - task-management-core
         - display-and-filter
@@ -14,6 +14,7 @@ body:
         - batch-edit-mode
         - daily-export
         - 新規 spec
+        - 未定（後で判断）
     validations:
       required: true
 
