@@ -25,9 +25,9 @@ nestodoの日報エクスポート機能を定義する。ユーザーが1日の
 
 #### Acceptance Criteria
 
-1. WHEN 当日（Day_Boundary基準）の最初のタスク更新リクエストを受けた場合、Export_Serviceは更新適用前に対象タスクの現在のprogressをProgress_Historyとして記録すること
-2. WHEN 同一タスクに対して当日2回目以降の更新が行われた場合、Export_Serviceは既存のProgress_Historyを上書きせず保持すること
-3. THE Export_ServiceはProgress_Historyをold_value（更新前）とnew_value（最新値）のペアとしてJSON型で保存すること
+1. WHEN 当日（Day_Boundary基準）の最初のタスク更新リクエストを受けた場合、Export_Serviceは更新適用前に対象タスクの現在のprogressをProgress_Historyのold_valueとして記録すること
+2. WHEN 同一タスクに対して当日2回目以降の更新が行われた場合、Export_Serviceはold_valueを上書きせず保持し、new_valueのみを最新値で更新すること
+3. THE Export_ServiceはProgress_Historyをold_value（当日初回更新前の値・固定）とnew_value（当日の最新値・都度更新）のペアとしてJSON型で保存すること
 4. WHEN statusが「完了」に変更された場合、Export_Serviceはprogressの変化と同様にstatus変更もProgress_Historyに記録すること
 
 ### Requirement 2: 本日の実績セクション生成
