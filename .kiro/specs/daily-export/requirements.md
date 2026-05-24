@@ -3,7 +3,7 @@
 ## Meta
 
 - **GitHub Issue**: (未作成 - Issue作成後にURLを記載)
-- **スコープ**: 日報エクスポート（本日の実績・残タスク出力、定期タスク次回分包含、進捗履歴記録）
+- **スコープ**: 日報エクスポート（本日の実績・残タスク出力、進捗履歴記録）
 
 ## Introduction
 
@@ -52,17 +52,7 @@ nestodoの日報エクスポート機能を定義する。ユーザーが1日の
 3. THE Export_ServiceはRemaining_Tasksをevent_atの昇順（nullは末尾）で並べること
 4. THE Export_ServiceはToday_Resultsに含まれる未完了タスクをRemaining_Tasksにも重複して含めること
 
-### Requirement 4: 定期タスクのエクスポート処理
-
-**User Story:** ユーザーとして、定期タスクの次回分まで日報に含めたい。直近の予定を把握するため。
-
-#### Acceptance Criteria
-
-1. WHEN 定期タスク（Template_Task）がエクスポート対象の場合、Export_Serviceは当日分のInstance_Taskに加え、次回予定のInstance_Task（event_atが当日より後の最初の1件）までを出力に含めること
-2. WHEN 次回Instance_Taskが存在しない場合、Export_Serviceは当日分のみを出力すること
-3. THE Export_Serviceは次回Instance_Taskを Remaining_Tasksセクションに含めること
-
-### Requirement 5: テキスト出力フォーマット
+### Requirement 4: テキスト出力フォーマット
 
 **User Story:** ユーザーとして、日報を読みやすいテキスト形式で取得したい。そのまま共有・保存できるようにするため。
 
@@ -74,7 +64,7 @@ nestodoの日報エクスポート機能を定義する。ユーザーが1日の
 4. IF Today_Resultsが空の場合、THEN Export_Serviceは「本日の実績」セクションに「進捗変化なし」と出力すること
 5. IF Remaining_Tasksが空の場合、THEN Export_Serviceは「残タスク」セクションに「残タスクなし」と出力すること
 
-### Requirement 6: エクスポート実行
+### Requirement 5: エクスポート実行
 
 **User Story:** ユーザーとして、任意のタイミングで日報を生成したい。作業終了時に1日の記録を出力するため。
 
