@@ -9,6 +9,8 @@
 
 nestodoのコア機能であるタスク管理の基盤を定義する。タスクのCRUD操作、最大10階層のツリー構造、ステータス/進捗の連動ロジック、一括完了処理、およびデータ分離（tasks + task_contents）を対象とする。
 
+> **注記**: 定期タスク（繰り返しタスクの自動生成）は初回リリースでは保留とする。検討経緯は `.kiro/specs/_archived/recurring-tasks/` を参照。
+
 ## Glossary
 
 - **Task_Service**: タスクのCRUD操作とビジネスロジックを担うサービス層
