@@ -1,5 +1,6 @@
 ---
-inclusion: manual
+inclusion: auto
+description: GitHub Issue参照・PR操作のコマンドとルール
 ---
 
 # GitHub 操作ガイド
