@@ -68,7 +68,7 @@ async def batch_update(operations: list[BatchOperation], db: AsyncSession = Depe
 type Operation =
   | { type: 'rename'; taskId: string; oldName: string; newName: string }
   | { type: 'create'; tempId: string; name: string; parentId: string | null;
-      sortOrder: number; taskType: 'TODO' | 'EVENT'; eventAt?: string }
+      sortOrder: number; taskType: 'TODO' | 'SCHEDULE'; eventAt?: string }
   | { type: 'delete'; taskId: string; descendants: string[] }
   | { type: 'move'; taskId: string; newSortOrder: number;
       newParentId?: string; rebalanced?: { id: string; sortOrder: number }[] };
@@ -85,7 +85,7 @@ class BatchOperation(BaseModel):
     name: str | None = None
     parent_id: str | None = None
     sort_order: float | None = None
-    task_type: Literal["TODO", "EVENT"] | None = None
+    task_type: Literal["TODO", "SCHEDULE"] | None = None
     event_at: datetime | None = None
     descendants: list[str] | None = None
 ```
