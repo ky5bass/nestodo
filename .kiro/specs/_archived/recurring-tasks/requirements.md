@@ -1,3 +1,14 @@
+定期タスクの機能は、下記のように変えることを検討している。
+
+- Template_Task の子として Instance_Task を配置するのをやめる。
+- そもそもこの Template_Task 自体が一覧から見えないようにしたい。
+- Template_Task 自体が子を持てるようにしたい。
+- Instance_Task を生成するか否かを generation_period で判断するのではなく、単に次回のタスクだけ生成するようにする。その先のは生成しない。
+- 特定の Instance_Task だけカスタマイズ（Template_Task の仕様と異なるようにする）ことを可能とし、その変更は Template_Task へは影響しないようにする。
+- Instance_Task をコピーできるようにする。ただしその場合は、Instance_Task であるという情報はコピーしない。通常のタスクになるようにコピーする。
+
+---
+
 # Requirements Document
 
 ## Meta
