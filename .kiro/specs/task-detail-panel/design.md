@@ -25,7 +25,7 @@ TaskDetailPanelComponent
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class DetailSaveService {
-  saveField(taskId: string, field: string, value: unknown, options?: { update_last_done?: boolean }): void;
+  saveField(taskId: string, field: string, value: unknown, options?: { update_last_done?: boolean; tz_offset?: number }): void;
   saveContent(taskId: string, field: 'pre_info' | 'notes' | 'reflection', value: string): void;
   retry(taskId: string, field: string): void;
 }
@@ -33,6 +33,8 @@ export class DetailSaveService {
 
 - `saveField`: Optimistic UIで即座にUI反映 → デバウンス(300ms) → API送信 → エラー時ロールバック
 - 同一フィールドへの連続編集はデバウンスにより最新値のみ送信
+- progress/actual_time編集時にupdate_last_done=trueの場合、tz_offset（`new Date().getTimezoneOffset()`の値）を付与して送信
+- **例外**: Completion_Trigger（status=完了 or progress=100）の場合はOptimistic UIを適用せず、batch-completion-uiで定義されたサーバー確認フローに委譲する。この際もtz_offsetを付与する
 
 ### TimeInputComponent
 
@@ -70,6 +72,7 @@ interface TaskFieldUpdateRequest {
   field: string;
   value: unknown;
   update_last_done?: boolean; // progress, actual_time編集時のみ
+  tz_offset?: number;        // update_last_done=true時またはCompletion_Trigger時に必須（分単位、JS getTimezoneOffset()値）
 }
 
 // PUT /api/tasks/{id}/contents
@@ -104,7 +107,7 @@ interface TaskContentUpdateRequest {
 
 ### Property 3: Optimistic UIの整合性
 
-*任意の*フィールド編集に対し、サーバー成功時はUIが新しい値を維持し、サーバーエラー時はUIが編集前の値にロールバックされること。
+*Completion_Triggerを除く任意の*フィールド編集に対し、サーバー成功時はUIが新しい値を維持し、サーバーエラー時はUIが編集前の値にロールバックされること。Completion_Trigger時はbatch-completion-uiのサーバー確認フローに従う。
 
 **Validates: Requirements 7.1, 7.2**
 
@@ -130,7 +133,7 @@ interface TaskContentUpdateRequest {
 
 - Property 1: ランダムなprogress値(0-100)設定後のstatus状態を検証
 - Property 2: ランダムな正整数に対するsnapToNearestの戻り値を検証
-- Property 3: ランダムなフィールド×値の組み合わせで成功/失敗時のUI状態を検証
+- Property 3: Completion_Triggerを除くランダムなフィールド×値の組み合わせで成功/失敗時のUI状態を検証
 - Property 4: ランダムな編集シーケンス生成後、送信値が最終値のみであることを検証
 
 **結合テスト**: API呼び出しのモックを用いたDetailSaveServiceのE2Eフロー検証。

@@ -6,7 +6,7 @@
 
 ## Architecture
 
-Task_Serviceがビジネスロジック（バリデーション・連動・カスケード）を集約し、Repository層がデータアクセスを担う。トランザクション管理はService層で行う。一覧取得時にtask_contentsをJOINしないことでレスポンス性能を確保するという考えからデータ分離とした。
+Task_Serviceがビジネスロジック（バリデーション・連動・カスケード）を集約し、Repository層がデータアクセスを担う。トランザクション管理はService層で行う。一覧取得時にtask_contentsをJOINしないことでレスポンス性能を確保するためデータ分離とした。
 
 ## Components and Interfaces
 
@@ -15,9 +15,11 @@ class TaskService(Protocol):
     async def create(self, input: CreateTaskInput) -> Task: ...
     async def get_by_id(self, id: UUID, include_content: bool = False) -> TaskWithChildren: ...
     async def get_tree(self) -> list[Task]: ...
-    async def update(self, id: UUID, input: UpdateTaskInput) -> Task: ...
+    async def update(self, id: UUID, input: UpdateTaskInput) -> UpdateResult: ...
     async def delete(self, id: UUID) -> None: ...
-    async def complete(self, id: UUID, confirmed: bool = False) -> CompleteResult: ...
+    async def complete(self, id: UUID, confirmed: bool, tz_offset: int) -> CompleteResult: ...
+    # update()は完了遷移検出時に内部的にcomplete()を呼び出す。complete()はDB上の未完了子孫を再帰クエリで判定。
+    # tz_offsetは必須。即成功時は対象タスク、confirmed=true時は親と全子孫のlast_done_atをDay_Boundary基準の論理日付に設定する。
 
 class CreateTaskInput(BaseModel):
     task_name: str              # 1〜255文字
@@ -32,14 +34,27 @@ class UpdateTaskInput(BaseModel):
     status: Literal['incomplete', 'complete'] | None = None
     priority: Literal['none', 'priority', 'highest'] | None = None
     event_at: datetime | None = None
+    parent_id: str | None = None
     estimated_time: int | None = None
     actual_time: int | None = None
     sort_order: float | None = None
     task_type: Literal['TODO', 'SCHEDULE'] | None = None
     export_flag: bool | None = None
     update_last_done: bool = True
+    tz_offset: int | None = None      # 分単位（JS getTimezoneOffset()値）、last_done_at更新時必須
+    # UNSET vs null判定: Pydantic v2の model_fields_set で未指定と明示的nullを区別する。
+    #   - field not in model_fields_set → 未指定（変更なし）
+    #   - field in model_fields_set and value is None → 明示的null送信
+    # Root_Task不変条件: 結果がRoot_Task(parent_id=null)ならevent_at non-null必須。
+    # parent_id=nullへの変更時: 同一リクエスト内event_at指定 or 既存non-null必須。
+    # Root→Child降格時: event_at保持。降格後のnull化は別途更新で可能。
 
-class CompleteResult(BaseModel):
+class UpdateResult(BaseModel):
+    type: Literal['updated', 'completed', 'confirmation_required']
+    task: Task | None = None
+    pending_children: list[PendingChild] | None = None  # confirmation_required時のみ
+
+class CompleteResult(BaseModel):  # complete()専用。UpdateResultのサブセット
     type: Literal['completed', 'confirmation_required']
     task: Task | None = None
     pending_children: list[PendingChild] | None = None
@@ -47,13 +62,7 @@ class CompleteResult(BaseModel):
 
 ## Data Models
 
-### PostgreSQL ENUM定義
-
-```sql
-CREATE TYPE task_type_enum AS ENUM ('TODO', 'SCHEDULE');
-CREATE TYPE task_status_enum AS ENUM ('incomplete', 'complete');
-CREATE TYPE priority_enum AS ENUM ('none', 'priority', 'highest');
-```
+PostgreSQL ENUM: task_type_enum(`'TODO'|'SCHEDULE'`)、task_status_enum(`'incomplete'|'complete'`)、priority_enum(`'none'|'priority'|'highest'`)
 
 ### tasks テーブル
 
@@ -83,68 +92,57 @@ CREATE TYPE priority_enum AS ENUM ('none', 'priority', 'highest');
 | task_id | UUID | PK, FK → tasks.id |
 | pre_info / notes / reflection | TEXT | NULL |
 
-階層制限（最大10レベル）はService層でparent_idチェーン走査により検証する。再帰クエリのコストを避けつつ柔軟に制限値を変更可能にするという考えからアプリケーション層で制御とした。
+階層制限（最大10レベル）はService層でparent_idチェーン走査により検証。アプリケーション層で制御とした理由は再帰クエリコスト回避と制限値の柔軟な変更のため。
 
-**ビジネスルール**: progress=100→status='complete'自動設定。逆方向はprogress<100同時指定必須。一括完了は未完了子孫がある場合に確認要求を返却し、確認後に深さ優先で全子孫を完了。preview=notesの最初の改行or100文字。detail_flag=task_contentsに非空白内容があればtrue。last_done_at=progress/actual_time更新時にDay_Boundary(午前5時)基準の本日日付を設定（update_last_done=trueの場合のみ）。
+**ビジネスルール**: progress=100→status='complete'自動設定。逆方向はprogress<100同時指定必須。update()は完了遷移検出時にcomplete()を内部呼び出し。一括完了判定はサーバー側DB状態から一元的に行い、未完了子孫ありならconfirmation_required、confirmed=trueで深さ優先全子孫完了。preview=notesの最初の改行or100文字（null/空白時は空文字列）。detail_flag=task_contentsに非空白内容があればtrue。last_done_at更新: (a) progress/actual_time更新+update_last_done=true、(b) complete()即成功時は対象タスク、(c) confirmed=true時は親+全子孫。tz_offset+Day_Boundary(午前5時)基準でDATE型保存。tz_offset欠落/-720〜840範囲外はエラー。
+
+**Root_Task event_at不変条件**: Root_Task（parent_id=null）はevent_at non-null必須。create/update/move/batch全経路で適用。(1) Root_Taskのevent_at→null更新は拒否、(2) Child_Task→Root昇格時は同一操作内event_at指定or既存non-null必須、(3) Root→Child降格時はevent_at保持（降格後のnull化は別途更新で許可）。
 
 ## Correctness Properties
 
 ### Property 1: 部分更新は未指定フィールドを保存する
-
-*For any* タスクと任意の部分更新リクエストにおいて、リクエストに含まれないフィールドは更新前後で同一の値を保持すること
-
-**Validates: Requirements 3.1**
+*For any* 部分更新リクエストにおいて、未指定フィールドは更新前後で同一値を保持すること。 **Validates: Req 3.1**
 
 ### Property 2: カスケード削除の完全性
-
-*For any* タスクツリーにおいて、ルートを削除した場合、全子孫タスクおよび関連するtask_contentsレコードが全て削除されること
-
-**Validates: Requirements 4.1, 4.2**
+*For any* タスクツリーにおいて、ルート削除時に全子孫+関連task_contentsが削除されること。 **Validates: Req 4.1, 4.2**
 
 ### Property 3: 進捗・ステータス双方向連動
+*For any* タスクにおいて、progress=100→status='complete'、status戻しにはprogress<100同時指定必須。 **Validates: Req 5.1, 5.2, 5.3**
 
-*For any* タスクにおいて、progress=100設定時はstatus='complete'となり、status='incomplete'への戻しにはprogress<100が同一リクエスト内に必須であること
-
-**Validates: Requirements 5.1, 5.2, 5.3**
-
-### Property 4: 一括完了の正当性
-
-*For any* 親タスクにおいて、確認付き一括完了後は自身と全子孫のstatusが'complete'かつprogressが100であること
-
-**Validates: Requirements 6.1, 6.2, 6.3**
+### Property 4: 一括完了の正当性（サーバー側一元判定）
+*For any* 完了遷移リクエストにおいて、DB上の未完了子孫ありならconfirmation_required返却。confirmed=trueのみ全子孫完了。 **Validates: Req 6.1-6.4**
 
 ### Property 5: preview導出の正当性
-
-*For any* notes文字列において、previewは最初の改行位置または100文字のいずれか短い方までのテキストとなること。notesがnull/空白のみの場合はpreviewが空文字列となること
-
-**Validates: Requirements 7.3, 7.4**
+*For any* notes文字列において、preview=最初の改行or100文字の短い方。null/空白時は空文字列。 **Validates: Req 7.3, 7.4**
 
 ### Property 6: detail_flagの整合性
+*For any* task_contentsにおいて、非空白内容ありならtrue、全null/空白ならfalse。 **Validates: Req 7.5, 7.6**
 
-*For any* task_contentsの状態において、いずれかのフィールドに空白以外の内容があればdetail_flag=true、全てnull/空白のみならdetail_flag=falseとなること
+### Property 7: last_done_at条件付き更新とtz_offset検証
+*For any* 非Completion_Trigger更新において、progress/actual_time+update_last_done=trueの場合のみlast_done_at更新。tz_offset欠落/範囲外はエラー。 **Validates: Req 8.1-8.3, 8.5**
 
-**Validates: Requirements 7.5, 7.6**
+### Property 8: 完了遷移時のlast_done_at設定
+*For any* 完了遷移において、(a) 即成功時は対象タスク、(b) confirmed=true時は親+全子孫のlast_done_atを設定。tz_offset不正時はエラー。 **Validates: Req 8.6, 8.7**
 
-### Property 7: last_done_at条件付き更新
-
-*For any* 更新リクエストにおいて、progress/actual_time更新かつupdate_last_done=trueの場合のみlast_done_atが本日日付に設定され、それ以外の場合はlast_done_atが変更されないこと
-
-**Validates: Requirements 8.1, 8.2, 8.3**
+### Property 9: Root_Task event_at不変条件の全経路保証
+*For any* create/update/move/batch操作において、結果がRoot_Task（parent_id=null）となるタスクのevent_atがnullなら拒否。降格時はevent_at保持。 **Validates: Req 1.2, 3.5, 3.6, 3.7**
 
 ## Error Handling
 
 | エラー種別 | 条件 | レスポンス |
 |---|---|---|
 | validation_error | 必須フィールド欠落、範囲外の値、不正なenum値 | 400 + フィールド別エラー詳細 |
+| root_event_at_required | Root_Taskのevent_atがnullとなる更新・移動・昇格操作 | 400 + 「Root_Taskにはevent_atが必須です」 |
+| invalid_tz_offset | tz_offsetが欠落または-720〜840の範囲外（last_done_at更新時・一括完了時） | 400 + バリデーションエラー |
 | not_found | 指定IDのタスク/親タスクが存在しない | 404 + 対象ID |
 | hierarchy_limit | 子タスク追加で階層が10を超える | 400 + 現在の深さ情報 |
 | status_conflict | progress<100なしでのステータス戻し | 400 + 必要条件の説明 |
 | transaction_error | カスケード操作中の失敗 | 500 + ロールバック完了通知 |
 
-統一フォーマット `{ error: { code, message, details? } }` で返却。部分的な変更を残さないという考えからトランザクション失敗時は必ずロールバックする。
+統一フォーマット `{ error: { code, message, details? } }` で返却。トランザクション失敗時は必ずロールバック。
 
 ## Testing Strategy
 
-- **プロパティテスト**: hypothesisを使用し、上記7プロパティを各100回以上のランダム入力で検証。タグ: `Feature: task-management-core, Property N: {text}`
-- **ユニットテスト**: バリデーション境界値（task_name 1文字/255文字/256文字）、デフォルト値、not-found、階層制限（深さ10/11）。pytest使用
-- **統合テスト**: トランザクションロールバック、カスケード削除の原子性、DB制約との整合性。testcontainersでPostgreSQLコンテナを使用
+- **プロパティテスト**: hypothesisを使用し、上記9プロパティを各100回以上のランダム入力で検証。Property 4は複数API経路（PUT /api/tasks/{id}でprogress=100、TaskService.complete()）から完了遷移を発生させ同一判定を確認。Property 7はtz_offset境界値（4:59/5:00）と異なるtz_offset値での論理日付算出を検証。Property 8は単体完了成功時の対象タスクおよび一括完了時の全子孫last_done_at設定を検証。Property 9はcreate/update(event_at=null)/update(parent_id=null)/batch moveの全経路でRoot_Task event_at不変条件を検証。タグ: `Feature: task-management-core, Property N: {text}`
+- **ユニットテスト**: バリデーション境界値、デフォルト値、not-found、階層制限（深さ10/11）、tz_offset欠落・範囲外エラー。pytest使用
+- **統合テスト**: トランザクションロールバック、カスケード削除の原子性、DB制約整合性、一括完了のDB状態依存性（フィルター非表示の未完了子孫も検出されること）、Day_Boundary境界値（4:59/5:00）でのlast_done_at算出。testcontainersでPostgreSQLコンテナを使用

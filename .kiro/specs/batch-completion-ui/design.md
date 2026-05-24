@@ -4,7 +4,7 @@
 
 親タスク完了時の一括完了確認モーダルUI、Optimistic UI例外ルーティング、キャンセル時のロールバックを実現する設計。`BatchCompletionModalComponent`と`DetailSaveService`の拡張で構成する。
 
-**設計判断**: DetailSaveServiceにCompletion_Trigger判定ロジックを追加し、親タスクの場合のみOptimistic UIをバイパスする方式とした。モーダル表示の責務をDetailPanel側に残すことで、既存のDetailSaveServiceの単一責任（保存フロー制御）を維持するためである。
+**設計判断**: DetailSaveServiceにCompletion_Trigger判定ロジックを追加し、Completion_Trigger発生時は常にサーバーへ問い合わせる方式とした。フロントエンドでの子タスク有無判定（hasChildren）を廃止し、サーバー側DB状態を唯一の判定源とすることで、フィルター済みツリーで非表示の未完了子孫を見落とすリスクを排除するためである。
 
 ## Architecture
 
@@ -12,7 +12,7 @@
 TaskDetailPanelComponent
 ├── BatchCompletionModalComponent (MatDialog)
 └── DetailSaveService (拡張: completion routing)
-        └── TaskService.complete(id, confirmed)
+        └── TaskService.complete(id, confirmed, tz_offset)
 ```
 
 **設計判断**: モーダルをMatDialogで実装し、DetailPanelから直接開く方式とした。専用サービスを挟まないことで、確認フローの状態遷移をシンプルに保つためである。
@@ -24,17 +24,20 @@ TaskDetailPanelComponent
 ```typescript
 // 既存のsaveFieldに追加するルーティングロジック
 saveField(taskId: string, field: string, value: unknown, options?: SaveFieldOptions): void {
-  if (this.isCompletionTrigger(field, value) && this.hasChildren(taskId)) {
-    this.startCompletionFlow(taskId, field, value); // Optimistic UI skip
+  if (this.isCompletionTrigger(field, value)) {
+    this.startCompletionFlow(taskId, field, value); // 常にサーバー確認フロー、tz_offset付き
     return;
   }
   // 従来のOptimistic UIフロー
 }
 
 private isCompletionTrigger(field: string, value: unknown): boolean;
-private hasChildren(taskId: string): boolean;
+// hasChildren()は使用しない。子の有無はサーバー側で判定する。
 private startCompletionFlow(taskId: string, field: string, value: unknown): void;
+// startCompletionFlowはtz_offset（new Date().getTimezoneOffset()）を付与してTaskService.complete()を呼び出す
 ```
+
+**設計判断**: フロントエンドでの`hasChildren()`判定を廃止し、Completion_Trigger発生時は常にサーバーへ問い合わせる方式とした。display-and-filterによるフィルター済みツリーでは非表示の未完了子孫を見落とす可能性があるため、DB状態を唯一の真実の源泉とする。サーバーからtype='completed'が返れば即UI反映、type='confirmation_required'が返ればモーダル表示という単純な分岐となる。
 
 ### BatchCompletionModalComponent
 
@@ -70,6 +73,8 @@ interface PendingChild {
 ### CompleteResult（TaskServiceレスポンス、task-management-coreで定義済み）
 
 ```typescript
+// TaskService.complete()はCompleteResult、TaskService.update()はUpdateResultを返す
+// フロントエンドはいずれもtypeフィールドで分岐する
 interface CompleteResult {
   type: 'completed' | 'confirmation_required';
   task?: Task;
@@ -83,11 +88,11 @@ interface CompleteResult {
 
 *正しさの性質とは、システムのすべての有効な実行において成り立つべき特性や振る舞いの形式的な記述である。*
 
-### Property 1: Completion_Triggerルーティング
+### Property 1: Completion_Triggerルーティング（サーバー一元判定）
 
-*任意の*タスクとCompletion_Trigger（status=完了 or progress=100）に対し、子タスクを持つ場合はOptimistic UIをスキップしTaskServiceへ直接リクエストし、子タスクを持たない場合は従来のOptimistic UIフローを実行すること。
+*任意の*タスクとCompletion_Trigger（status=完了 or progress=100）に対し、フロントエンドは常にOptimistic UIをスキップしtz_offset付きでTaskServiceへ完了リクエストを送信すること。レスポンスのtype='completed'の場合はUI反映、type='confirmation_required'の場合はモーダル表示すること。フロントエンド側で子タスクの有無を判定しないこと。
 
-**Validates: Requirements 1.1, 1.4, 2.1, 2.4**
+**Validates: Requirements 1.1, 1.2, 1.3, 2.1, 2.4**
 
 ### Property 2: キャンセル時のロールバック
 
@@ -115,10 +120,10 @@ interface CompleteResult {
 
 **プロパティテスト**: fast-checkを使用し、Property 1〜3をフロントエンドで各100回以上検証。タグ: `Feature: batch-completion-ui, Property N: {text}`
 
-- Property 1: ランダムなタスク（子あり/なし）× トリガー種別で、ルーティング先を検証
+- Property 1: ランダムなタスク × トリガー種別で、常にtz_offset付きでサーバーへリクエストが送信されることを検証。レスポンスtype別のUI分岐（completed→UI反映、confirmation_required→モーダル表示）を検証
 - Property 2: ランダムなprogress値(0〜99)でキャンセル後の復元を検証
 - Property 3: ランダムな長さ(1〜50)のPendingChildリストで表示件数と残件数を検証
 
 **ユニットテスト**: モーダルの静的コンテンツ（メッセージ、ボタン）、ローディング状態、esc/backdrop閉じ、リトライ動作。Angular TestBed使用。
 
-**結合テスト**: DetailPanel → DetailSaveService → TaskService → Modal → confirm/cancelの一連フロー。TaskServiceモックを使用。
+**結合テスト**: DetailPanel → DetailSaveService → TaskService → レスポンスtype分岐 → Modal/UI反映の一連フロー。TaskServiceモックを使用。サーバー側一元判定の検証として、フロントエンドが子タスクの有無を判定せずサーバーレスポンスのみに従うことを確認。
