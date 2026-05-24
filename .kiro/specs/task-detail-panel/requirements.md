@@ -2,7 +2,7 @@
 
 ## Meta
 
-- **GitHub Issue**: (未作成 - Issue作成後にURLを記載)
+- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/3
 - **スコープ**: タスク詳細パネルのレイアウト、属性編集、ステータス戻しUI、作業時間入力、エクスポートフラグ、Optimistic UI
 
 ## Introduction

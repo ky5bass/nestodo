@@ -2,7 +2,7 @@
 
 ## Meta
 
-- **GitHub Issue**: (未作成 - Issue作成後にURLを記載)
+- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/4
 - **スコープ**: 一括編集モードの切り替え、モード内操作、保存/キャンセル、Undo/Redo、並び替え
 
 ## Introduction

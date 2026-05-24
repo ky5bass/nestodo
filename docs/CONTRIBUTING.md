@@ -120,12 +120,13 @@ Kiro が行う処理:
 
 ## GitHub Issues の使い方
 
-- 新機能・大きな設計変更は新しい Issue を作成する
-- 既存 spec への小さな修正・調整は既存 Issue へのコメントでよい
-- sub-issue は使わない（管理が複雑になるため）
-- Issue には対象の spec を明記する。複数 spec にまたがる場合は分割を検討する
+- **変更の大小にかかわらず、つねに新しい Issue を作成する**。既存 Issue へのコメントで仕様変更を進めない
+  - 理由: 変更の単位を明確にし、「いつ・なぜ仕様が変わったか」を Issue/PR で追跡できるようにするため
+- Issue には対象の spec を明記する（`feature.yml` のドロップダウンで選択）。複数 spec にまたがる場合は分割を検討する
 - 「どの spec に属するかわからない」場合は新しい Issue を作成して Kiro に相談する
-- `requirements.md` のメタ情報セクションに Issue URL を記載することで、spec と Issue を紐づける
+- sub-issue は使わない（管理が複雑になるため）
+- `requirements.md` のメタ情報セクションの Issue URL は、**その時点の spec 内容に対応した最新の Issue URL** を記載する。spec 更新のたびに書き換える
+- spec 初回定義の Issue（spec PR マージ後）は close する。以降の変更はつど新しい Issue を立てる
 
 ---
 

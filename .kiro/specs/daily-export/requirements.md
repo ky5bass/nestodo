@@ -2,7 +2,7 @@
 
 ## Meta
 
-- **GitHub Issue**: (未作成 - Issue作成後にURLを記載)
+- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/5
 - **スコープ**: 日報エクスポート（本日の実績・残タスク出力、進捗履歴記録）
 
 ## Introduction

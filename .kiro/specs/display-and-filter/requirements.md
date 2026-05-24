@@ -2,7 +2,7 @@
 
 ## Meta
 
-- **GitHub Issue**: (未作成 - Issue作成後にURLを記載)
+- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/2
 - **スコープ**: タスクリスト表示（ツリー構造・プレビュー）、詳細パネル遷移、グローバルフィルター、日付境界
 
 ## Introduction
