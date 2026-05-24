@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Spec ドロップダウン同期",
+  "description": "specディレクトリ内に新しいファイルが作成されたとき、.github/ISSUE_TEMPLATE/feature.yml のドロップダウン選択肢を .kiro/specs/ 配下のディレクトリ一覧と同期する",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      ".kiro/specs/**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": ".kiro/specs/ 配下のディレクトリ一覧（_archived を除く）を取得し、.github/ISSUE_TEMPLATE/feature.yml の「対象 spec」ドロップダウンの options を更新してください。ディレクトリ名をアルファベット順に並べ、末尾に「新規 spec」「未定（後で判断）」を追加してください。既存のドロップダウン構造（label, description, validations）は変更しないでください。"
+  }
+}

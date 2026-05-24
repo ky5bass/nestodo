@@ -8,11 +8,13 @@ body:
       label: 対象 spec
       description: この変更が属する spec を選択してください。判断できない場合は「未定（後で判断）」を選択。
       options:
-        - task-management-core
-        - display-and-filter
-        - task-detail-panel
         - batch-edit-mode
         - daily-export
+        - display-and-filter
+        - menu-button
+        - pwa-support
+        - task-detail-panel
+        - task-management-core
         - 新規 spec
         - 未定（後で判断）
     validations:
