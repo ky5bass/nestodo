@@ -2,7 +2,7 @@
 
 ## Meta
 
-- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/9
+- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/1
 - **スコープ**: タスクCRUD、階層構造、属性管理、ステータス連動、一括完了、最終実施日管理
 
 ## Introduction
