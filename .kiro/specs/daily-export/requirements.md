@@ -25,8 +25,8 @@ nestodoの日報エクスポート機能を定義する。ユーザーが1日の
 
 #### Acceptance Criteria
 
-1. WHEN 当日（Day_Boundary基準）の最初のタスク更新リクエストを受けた場合、Export_Serviceは更新適用前に対象タスクの現在のprogressをProgress_Historyのold_valueとして記録すること
-2. WHEN 同一タスクに対して当日2回目以降の更新が行われた場合、Export_Serviceはold_valueを上書きせず保持し、new_valueのみを最新値で更新すること
+1. WHEN 当日（Day_Boundary基準）の最初のprogress更新またはstatus更新リクエストを受けた場合、Export_Serviceは更新適用前に対象タスクの現在のprogressをProgress_Historyのold_valueとして記録すること。タスク名変更やノート編集など進捗・ステータスに無関係な更新では記録しないこと
+2. WHEN 同一タスクに対して当日2回目以降のprogress更新またはstatus更新が行われた場合、Export_Serviceはold_valueを上書きせず保持し、new_valueのみを最新値で更新すること
 3. THE Export_ServiceはProgress_Historyをold_value（当日初回更新前の値・固定）とnew_value（当日の最新値・都度更新）のペアとしてJSON型で保存すること
 4. WHEN statusが「完了」に変更された場合、Export_Serviceはprogressの変化と同様にstatus変更もProgress_Historyに記録すること
 
@@ -36,7 +36,7 @@ nestodoの日報エクスポート機能を定義する。ユーザーが1日の
 
 #### Acceptance Criteria
 
-1. WHEN エクスポートが実行された場合、Export_ServiceはDay_Boundary基準の当日にProgress_Historyが存在し、かつexport_flagがtrueのタスクをToday_Resultsとして収集すること
+1. WHEN エクスポートが実行された場合、Export_ServiceはDay_Boundary基準の当日にProgress_Historyが存在し、かつold_value ≠ new_value（進捗またはステータスに実際の変化がある）であり、かつexport_flagがtrueのタスクをToday_Resultsとして収集すること
 2. THE Export_Serviceは各Today_Resultsタスクについて、task_name、old_value、new_value（progress）を出力すること
 3. WHEN タスクが当日完了された場合、Export_Serviceはステータス変化（未完了→完了）を出力に含めること
 4. THE Export_ServiceはToday_Resultsをevent_atの昇順で並べること
