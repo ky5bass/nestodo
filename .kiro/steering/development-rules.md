@@ -1,5 +1,10 @@
 # 開発ルール
 
+## リポジトリ情報
+
+- GitHub リポジトリ: `ky5bass/nestodo`
+- GitHub API 呼び出し時の owner は `ky5bass` を使用すること
+
 ## 言語ルール
 
 - Kiroの応答は原則として日本語で行うこと
