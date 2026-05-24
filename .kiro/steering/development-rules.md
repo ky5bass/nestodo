@@ -1,10 +1,5 @@
 # 開発ルール
 
-## リポジトリ情報
-
-- GitHub リポジトリ: `ky5bass/nestodo`
-- GitHub API 呼び出し時の owner は `ky5bass` を使用すること
-
 ## 言語ルール
 
 - Kiroの応答は原則として日本語で行うこと
@@ -39,8 +34,7 @@
 
 - 完了したtask.mdは削除すること
 
-## GitHub Issue の取得ルール
+## GitHub 操作ルール
 
-- Issue を参照する際は、Issue 本文だけでなくコメント一覧も必ず取得すること（`get_issue` に加えて `list_issue_comments` 等のコメント取得APIも呼ぶ）
-- コメントに仕様変更や追加要件が含まれている可能性があるため、コメント 0 件でない限り省略しないこと
-- 書き込み系API（`add_issue_comment`, `create_issue` 等）はユーザーから明示的に指示された場合のみ使用すること
+- GitHub 操作が必要な場合は `#github-operations` steering を参照すること
+- GitHub MCP ツールは使用せず `gh` CLI を使用すること
