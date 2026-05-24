@@ -72,4 +72,4 @@ nestodoをPWA（Progressive Web App）として動作させ、ユーザーがブ
 1. THE Web_App_Manifest SHALL 192x192（purpose: "any"、ホーム画面用）と512x512（purpose: "any"、スプラッシュ画面用）のPNGアイコンを含み、各アイコンのsrcパスが有効なリソースを指していること
 2. THE Web_App_Manifest SHALL 512x512のPNGアイコンをpurpose: "maskable"として含み、アイコンの重要なコンテンツが中心80%の領域内に収まっていること
 3. THE Web_App_Manifest SHALL スプラッシュ画面生成に必要なフィールド（name、icons（512x512以上）、background_color、theme_color）をすべて定義すること
-4. WHEN PWA_Appがスタンドアロンモードで起動された場合、THE PWA_App SHALL manifestのbackground_colorを背景色、512x512アイコンを中央、nameをアイコン下部に配置したスプラッシュ画面を表示すること
+4. WHEN PWA_Appがスタンドアロンモードで起動された場合、THE Web_App_Manifest SHALL 対応環境でスプラッシュ画面が自動生成される条件（name、512x512以上のアイコン、background_color）を満たしていること
