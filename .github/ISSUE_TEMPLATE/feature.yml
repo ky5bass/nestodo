@@ -12,7 +12,8 @@ body:
         - daily-export
         - display-and-filter
         - menu-button
-        - pwa-support
+        - pwa-install
+        - pwa-offline
         - task-detail-panel
         - task-management-core
         - 新規 spec
