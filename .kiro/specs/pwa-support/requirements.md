@@ -47,7 +47,7 @@ nestodoをPWA（Progressive Web App）として動作させ、ユーザーがブ
 
 #### Acceptance Criteria
 
-1. WHEN Service_Workerがインストールされた場合、THE Service_Worker SHALL App_Shell（HTML、CSS、JavaScript、フォント）をキャッシュストレージに保存し、すべてのリソースの保存が完了するまでインストールを完了しないこと
+1. WHEN Service_Workerがインストールされた場合、THE Service_Worker SHALL App_Shell（HTML、CSS、JavaScript）をキャッシュストレージに保存し、すべてのリソースの保存が完了するまでインストールを完了しないこと（本アプリはシステムフォントのみ使用し、カスタムフォントファイルは含まない）
 2. WHEN キャッシュ済みのApp_Shellリソースがリクエストされた場合、THE Service_Worker SHALL ネットワークリクエストより先にキャッシュから応答すること（Cache First戦略）
 3. WHEN オフライン状態でナビゲーションリクエストが発生した場合、THE Service_Worker SHALL プリキャッシュ済みのindex.html（App Shell）を応答し、アプリのUI構造を表示すること
 4. IF App_Shellリソースのキャッシュ保存に失敗した場合、THEN THE Service_Worker SHALL インストールを中断し、次回アクセス時に再度インストールを試行すること
@@ -60,7 +60,7 @@ nestodoをPWA（Progressive Web App）として動作させ、ユーザーがブ
 
 1. WHILE ネットワーク接続がない状態で、WHEN PWA_Appが表示されている場合、THE PWA_App SHALL 画面上部に固定表示されるバナーによりオフライン状態であることをユーザーに通知すること
 2. WHEN ネットワーク接続が回復した場合、THE PWA_App SHALL 3秒以内にオフライン通知バナーを非表示にすること
-3. IF オフライン中にAPIリクエストが失敗した場合、THEN THE PWA_App SHALL リクエストが送信できなかった旨のエラーメッセージを表示し、ユーザーが入力済みのデータを画面上に保持すること
+3. IF オフライン中にAPIリクエスト（`DetailSaveService`経由の`saveField`/`saveContent`）が失敗した場合、THEN THE PWA_App SHALL オフライン通知バナー（AC 4.1）によりネットワーク未接続であることをユーザーに伝達し、ユーザーが入力済みのデータを画面上に保持したままオンライン復帰後に自動リトライすること。ただし一括完了確認フロー（batch-completion-ui）および一括編集保存（batch-edit-mode）は各specの既存エラーハンドリングに従うこと
 
 ### Requirement 5: アプリアイコンとスプラッシュ画面
 
