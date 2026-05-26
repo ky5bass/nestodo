@@ -3,16 +3,16 @@
 ## Meta
 
 - **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/11
-- **スコープ**: PWA対応（インストール可能化、オフライン基本対応、アプリライクなUX）
+- **スコープ**: PWA基盤（インストール可能化、Service Worker登録、App Shellキャッシュ、アイコン）
 
 ## Introduction
 
-nestodoをPWA（Progressive Web App）として動作させ、ユーザーがブラウザのタブ操作なしにタスクバーやホーム画面からアプリを起動できるようにする。開発コストを抑えつつデスクトップアプリ同然のUXを提供することが目的。
+nestodoをPWA（Progressive Web App）として動作させ、ユーザーがブラウザのタブ操作なしにタスクバーやホーム画面からアプリを起動できるようにする。本specではPWAとして認識されるための基盤設定（manifest、Service Worker、キャッシュ戦略）を扱う。
 
 ## Glossary
 
 - **PWA_App**: PWAとして動作するnestodoアプリケーション全体
-- **Web_App_Manifest**: PWAのメタデータを定義するmanifest.jsonファイル
+- **Web_App_Manifest**: PWAのメタデータを定義するmanifest.webmanifestファイル
 - **Service_Worker**: バックグラウンドで動作し、キャッシュやオフライン対応を担うスクリプト
 - **App_Shell**: アプリの基本UIフレーム（ナビゲーション、レイアウト等の静的構造）
 
@@ -52,17 +52,7 @@ nestodoをPWA（Progressive Web App）として動作させ、ユーザーがブ
 3. WHEN オフライン状態でナビゲーションリクエストが発生した場合、THE Service_Worker SHALL プリキャッシュ済みのindex.html（App Shell）を応答し、アプリのUI構造を表示すること
 4. IF App_Shellリソースのキャッシュ保存に失敗した場合、THEN THE Service_Worker SHALL インストールを中断し、次回アクセス時に再度インストールを試行すること
 
-### Requirement 4: オフラインフォールバック
-
-**User Story:** ユーザーとして、オフライン時にも適切なフィードバックを受けたい。アプリが壊れたと誤解しないため。
-
-#### Acceptance Criteria
-
-1. WHILE ネットワーク接続がない状態で、WHEN PWA_Appが表示されている場合、THE PWA_App SHALL 画面上部に固定表示されるバナーによりオフライン状態であることをユーザーに通知すること
-2. WHEN ネットワーク接続が回復した場合、THE PWA_App SHALL 3秒以内にオフライン通知バナーを非表示にすること
-3. IF オフライン中にAPIリクエスト（`DetailSaveService`経由の`saveField`/`saveContent`）が失敗した場合、THEN THE PWA_App SHALL オフライン通知バナー（AC 4.1）によりネットワーク未接続であることをユーザーに伝達し、ユーザーが入力済みのデータを画面上に保持したままオンライン復帰後に自動リトライすること。ただし一括完了確認フロー（batch-completion-ui）および一括編集保存（batch-edit-mode）は各specの既存エラーハンドリングに従うこと
-
-### Requirement 5: アプリアイコンとスプラッシュ画面
+### Requirement 4: アプリアイコンとスプラッシュ画面
 
 **User Story:** ユーザーとして、アプリらしい見た目で起動してほしい。ネイティブアプリと同等の体験を得るため。
 
