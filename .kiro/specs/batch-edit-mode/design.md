@@ -1,13 +1,10 @@
 # 設計ドキュメント: batch-edit-mode
-
 ## Overview
-
 一括編集モードの状態管理・変更バッファ・Undo/Redo・sort_order算出・バッチ保存を実現する設計。フロントエンドは`EditModeService`と`SortOrderCalculator`、バックエンドは`PATCH /api/tasks/batch`で構成する。
 
 **設計判断**: 変更をクライアント側バッファに蓄積し一括送信する方式。操作ごとのAPI呼び出しはUX悪化とトランザクション整合性の問題があるため。sort_order算出もD&Dリアルタイムフィードバックのためフロントエンドに配置。
 
 ## Architecture
-
 ```
 TaskListComponent (Angular)
 ├── EditModeToolbarComponent (保存/キャンセル/Undo/Redo/フィルター解除)
@@ -18,9 +15,7 @@ TaskListComponent (Angular)
 ```
 
 ## Components and Interfaces
-
 ### EditModeService (Angular)
-
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class EditModeService {
@@ -41,7 +36,6 @@ export class EditModeService {
 ```
 
 ### SortOrderCalculator (Angular - 純粋関数staticクラス、PBTに最適)
-
 ```typescript
 export class SortOrderCalculator {
   static midpoint(prev: number, next: number): number;        // (prev + next) / 2
@@ -53,7 +47,6 @@ export class SortOrderCalculator {
 ```
 
 ### バッチ保存API (FastAPI)
-
 ```python
 @router.patch("/api/tasks/batch")
 async def batch_update(operations: list[BatchOperation], db: AsyncSession = Depends(get_db)):
@@ -64,9 +57,7 @@ async def batch_update(operations: list[BatchOperation], db: AsyncSession = Depe
 **設計判断**: バッチ保存時バリデーションは「全操作適用後の最終状態」に対して行う。中間状態での一時的な不変条件違反は許容し最終整合性のみ保証。操作順序依存を排除しバッファリング自由度を確保。
 
 ## Data Models
-
 ### Operation型 (フロントエンド)
-
 ```typescript
 type Operation =
   | { type: 'rename'; taskId: string; oldName: string; newName: string }
@@ -81,7 +72,6 @@ type Operation =
 **設計判断**: move.newParentIdは必須フィールドとし、同一親内移動でも現在の親ID（またはnull）を明示送信する。「未指定」と「ルートへ移動(null)」の曖昧さを排除。undo用旧値もOperation自体に含めundo可能とした。
 
 ### BatchOperation (APIリクエスト)
-
 ```python
 class BatchOperation(BaseModel):
     type: Literal["rename", "create", "delete", "move"]
@@ -96,42 +86,51 @@ class BatchOperation(BaseModel):
 ```
 
 ## Correctness Properties
-
 ### Property 1: sort_order中間値算出
-*任意の* prev < next に対し、`midpoint(prev, next)` は prev < result < next を満たすこと。 **Validates: Req 3.2, 5.2**
+**Validates: Requirements 3.2, 5.2**
+*任意の* prev < next に対し、`midpoint(prev, next)` は prev < result < next を満たすこと。
 
 ### Property 2: sort_order境界値算出
-*任意の*兄弟リストに対し、`prependToHead(first)` < first、`appendToEnd(last)` > last。 **Validates: Req 3.3, 5.4, 5.5**
+**Validates: Requirements 3.3, 5.4, 5.5**
+*任意の*兄弟リストに対し、`prependToHead(first)` < first、`appendToEnd(last)` > last。
 
 ### Property 3: リバランスの順序保存と等間隔性
-*任意の*兄弟リストに対し、`rebalance`後は元の相対順序を保持し1.0始まりの等間隔。 **Validates: Req 5.3, 5.7**
+**Validates: Requirements 5.3, 5.7**
+*任意の*兄弟リストに対し、`rebalance`後は元の相対順序を保持し1.0始まりの等間隔。
 
 ### Property 4: Change_Bufferの操作記録完全性
-*任意の*有効操作に対し、`applyOperation`後のChange_Bufferは全必須フィールドを含むこと。 **Validates: Req 2.2, 3.1, 4.1, 5.6**
+**Validates: Requirements 2.2, 3.1, 4.1, 5.6**
+*任意の*有効操作に対し、`applyOperation`後のChange_Bufferは全必須フィールドを含むこと。
 
 ### Property 5: タスク名バリデーション
-*任意の*空文字列/255文字超に対し、rename操作はバッファに追加されないこと。 **Validates: Req 2.3**
+**Validates: Requirements 2.3**
+*任意の*空文字列/255文字超に対し、rename操作はバッファに追加されないこと。
 
 ### Property 6: カスケード削除の完全性
-*任意の*ノード削除時、全子孫IDがOperation.descendantsに含まれること。 **Validates: Req 4.2**
+**Validates: Requirements 4.2**
+*任意の*ノード削除時、全子孫IDがOperation.descendantsに含まれること。
 
 ### Property 7: 階層制限の強制
-*任意の*移動操作で移動後深さが10超の場合、操作は拒否されること。 **Validates: Req 5.1**
+**Validates: Requirements 5.1**
+*任意の*移動操作で移動後深さが10超の場合、操作は拒否されること。
 
 ### Property 8: Undo/Redoラウンドトリップ
-*任意の*操作列に対し、全undo後バッファ空、全redo後バッファは元と等価。 **Validates: Req 7.1-7.3, 7.7**
+**Validates: Requirements 7.1, 7.2, 7.3, 7.7**
+*任意の*操作列に対し、全undo後バッファ空、全redo後バッファは元と等価。
 
 ### Property 9: フィルター切替時のバッファ保持
-*任意の*バッファ状態でフィルターオン/オフ切替後もバッファ不変。 **Validates: Req 8.4**
+**Validates: Requirements 8.4**
+*任意の*バッファ状態でフィルターオン/オフ切替後もバッファ不変。
 
 ### Property 10: バッチ保存時のRoot_Task event_at不変条件
-*任意の*バッチ操作列で最終状態のRoot_Taskのevent_atがnullならバッチ全体ロールバック。 **Validates: Req 5.8, 6.6**
+**Validates: Requirements 5.8, 6.6**
+*任意の*バッチ操作列で最終状態のRoot_Taskのevent_atがnullならバッチ全体ロールバック。
 
 ### Property 11: ルート移動時のevent_at入力強制
-*任意の*Child_Task→ルート移動でevent_atがnullなら、ダイアログ入力なしではmove操作不追加。 **Validates: Req 5.8**
+**Validates: Requirements 5.8**
+*任意の*Child_Task→ルート移動でevent_atがnullなら、ダイアログ入力なしではmove操作不追加。
 
 ## Error Handling
-
 | エラー種別 | 条件 | 対応 |
 |---|---|---|
 | validation_error | タスク名が空 or 255文字超 | インラインエラー表示、バッファリング防止 |
@@ -144,7 +143,6 @@ class BatchOperation(BaseModel):
 **設計判断**: バッチ保存失敗時にモードを維持する。ユーザーの編集作業を失わせないため。
 
 ## Testing Strategy
-
 **プロパティテスト**: fast-checkでProperty 1〜11を各100回以上検証。Property 10はバックエンド結合テストでも検証。タグ: `Feature: batch-edit-mode, Property N: {text}`
 **ユニットテスト**: モード遷移、確認ダイアログ、undo/redo有効/無効、フィルター初期状態、ルート移動時event_atダイアログ。Angular TestBed使用。
 **結合テスト**: バッチ保存正常系、ロールバック、バリデーションエラー、Root_Task不変条件違反、Child→Root昇格パターン。pytest + httpx使用。
