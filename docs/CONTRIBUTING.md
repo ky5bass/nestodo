@@ -14,6 +14,13 @@
 - `.venv` がない場合は `python -m venv .venv` の後、`.venv/bin/python -m pip install -e '.[test]'` で依存関係を入れる
 - グローバル環境や pyenv のベース環境へ依存関係をインストールしない
 
+## Node.js 開発環境
+
+- Node.js の依存関係はプロジェクト直下の `node_modules` に入れる
+- 依存関係のインストールは `npm ci` または `npm install` を使い、`npm install -g` は使わない
+- CLI は `npm run <script>`、または `npm exec -- <command>` / `npx --no-install <command>` でローカル依存のものを実行する
+- システムやユーザー領域の npm global prefix へ依存関係をインストールしない
+
 ---
 
 ## 1機能の開発フロー

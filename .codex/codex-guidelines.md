@@ -71,6 +71,13 @@ spec 名が指定されていない場合は、`.kiro/specs/` 配下の候補を
 - `.venv` が存在しない場合は、`.python-version` の Python で `python -m venv .venv` を実行し、`.venv/bin/python -m pip install -e '.[test]'` で依存関係をインストールすること
 - グローバル環境や pyenv のベース環境へパッケージをインストールしないこと
 
+## Node.js 実行環境
+
+- Node.js / Angular 関連のコマンドは、プロジェクトローカルの `node_modules` と package script を優先して使用すること
+- 依存関係のインストールは `npm ci` または `npm install` でプロジェクト直下に対して行い、`npm install -g` は使用しないこと
+- CLI は `npm run <script>`、または必要に応じて `npm exec -- <command>` / `npx --no-install <command>` でローカル依存のものを実行すること
+- グローバル環境、システム Node.js、ユーザー領域の npm global prefix へパッケージをインストールしないこと
+
 ---
 
 ## 検証コマンド（コミット前に必ず実行）
