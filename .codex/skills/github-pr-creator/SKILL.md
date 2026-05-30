@@ -43,11 +43,12 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
 
 5. 一時 Markdown ファイルに PR 本文を作成する:
    - タイトルは conventional commit 形式で、日本語の説明にする。
-   - 本文は `.github/pull_request_template.md` に従う。
+   - 本文は `.github/pull_request_template.md` に従い、日本語で記述する。
    - 以下を含める:
      - PR 種別: `コード PR（実装）` にチェックを入れる。
      - `spec: .kiro/specs/<spec名>/`。
      - `requirements.md` に Issue 番号や URL がある場合はそれを記載する。
+     - `requirements.md` の受け入れ基準と対応するテスト。
      - 実装変更の要約。
      - 検証コマンドと結果。
      - スキップした optional task があれば記載する。
