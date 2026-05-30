@@ -90,7 +90,7 @@ class TaskService:
         tasks = await self.repo.list_all()
         return self._build_tree(tasks)
 
-    async def update(self, task_id: UUID, input: UpdateTaskInput) -> UpdateResult:
+    async def update(self, task_id: UUID, input: UpdateTaskInput) -> UpdateResult | CompleteResult:
         task = await self.repo.get_for_update(task_id)
         if task is None:
             raise NotFoundError("タスクが見つかりません", {"id": str(task_id)})
@@ -260,11 +260,13 @@ class TaskService:
 
     def _logical_today(self, tz_offset: int | None) -> date:
         self._validate_tz_offset(tz_offset)
+        assert tz_offset is not None
         # JS getTimezoneOffset は UTC - local の分数なので、符号を反転してローカル時刻へ寄せる。
         local_now = datetime.now(timezone.utc) - timedelta(minutes=tz_offset)
         if local_now.hour < DAY_BOUNDARY_HOUR:
             local_now -= timedelta(days=1)
-        return local_now.date()
+        logical_date: date = local_now.date()
+        return logical_date
 
     def _should_update_last_done(self, input: UpdateTaskInput, fields: set[str]) -> bool:
         return input.update_last_done and bool({"progress", "actual_time"} & fields)

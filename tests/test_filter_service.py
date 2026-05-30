@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from datetime import date, datetime, timezone
 
-from app.api import get_task_tree
-from app.errors import InvalidTimezoneOffsetError
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db import get_session
+from app.main import app
+from app.models import TaskType
 from app.schemas import CreateTaskInput
 from app.services import FilterService, TaskService
 
 
-async def test_day_boundary_uses_5am_local_time(session):
+async def test_day_boundary_uses_5am_local_time(session: AsyncSession) -> None:
     service = FilterService(session)
 
     before_start, before_end = service.get_day_boundary(
@@ -24,12 +29,14 @@ async def test_day_boundary_uses_5am_local_time(session):
     assert after_end.date() == date(2026, 6, 2)
 
 
-async def test_effective_at_inherits_nearest_ancestor_without_mutating(session):
+async def test_effective_at_inherits_nearest_ancestor_without_mutating(
+    session: AsyncSession,
+) -> None:
     task_service = TaskService(session)
     root = await task_service.create(
         CreateTaskInput(
             task_name="root",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=1,
             event_at=datetime(2026, 8, 1, 9, 0),
         )
@@ -37,14 +44,16 @@ async def test_effective_at_inherits_nearest_ancestor_without_mutating(session):
     parent = await task_service.create(
         CreateTaskInput(
             task_name="parent",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=1,
             parent_id=root.id,
             event_at=datetime(2026, 6, 10, 9, 0),
         )
     )
     child = await task_service.create(
-        CreateTaskInput(task_name="child", task_type="TODO", sort_order=1, parent_id=parent.id)
+        CreateTaskInput(
+            task_name="child", task_type=TaskType.TODO, sort_order=1, parent_id=parent.id
+        )
     )
     tasks = await FilterService(session).repo.list_all()
     by_id = {task.id: task for task in tasks}
@@ -57,12 +66,14 @@ async def test_effective_at_inherits_nearest_ancestor_without_mutating(session):
     assert by_id[child.id].event_at is None
 
 
-async def test_filtered_tree_includes_ancestors_and_sorts_siblings(session):
+async def test_filtered_tree_includes_ancestors_and_sorts_siblings(
+    session: AsyncSession,
+) -> None:
     task_service = TaskService(session)
     root = await task_service.create(
         CreateTaskInput(
             task_name="root",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=1,
             event_at=datetime(2026, 8, 1, 9, 0),
         )
@@ -70,7 +81,7 @@ async def test_filtered_tree_includes_ancestors_and_sorts_siblings(session):
     later = await task_service.create(
         CreateTaskInput(
             task_name="later",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=2,
             parent_id=root.id,
             event_at=datetime(2026, 6, 15, 9, 0),
@@ -79,7 +90,7 @@ async def test_filtered_tree_includes_ancestors_and_sorts_siblings(session):
     earlier = await task_service.create(
         CreateTaskInput(
             task_name="earlier",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=1,
             parent_id=root.id,
             event_at=datetime(2026, 6, 10, 9, 0),
@@ -88,7 +99,7 @@ async def test_filtered_tree_includes_ancestors_and_sorts_siblings(session):
     await task_service.create(
         CreateTaskInput(
             task_name="far",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=3,
             parent_id=root.id,
             event_at=datetime(2026, 7, 2, 9, 0),
@@ -103,34 +114,32 @@ async def test_filtered_tree_includes_ancestors_and_sorts_siblings(session):
     assert [node.id for node in tree[0].children] == [earlier.id, later.id]
 
 
-async def test_filtered_api_returns_tree_and_validates_tz_offset(session):
+async def test_filtered_api_returns_tree_and_validates_tz_offset(
+    session: AsyncSession,
+) -> None:
     task_service = TaskService(session)
     root = await task_service.create(
         CreateTaskInput(
             task_name="root",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=1,
             event_at=datetime(2000, 1, 1, 9, 0),
         )
     )
-    filter_service = FilterService(session)
 
-    response = await get_task_tree(
-        filtered=True,
-        tz_offset=-540,
-        service=task_service,
-        filter_service=filter_service,
-    )
+    async def override_session() -> AsyncGenerator[AsyncSession]:
+        yield session
 
-    assert response[0].id == root.id
+    app.dependency_overrides[get_session] = override_session
     try:
-        await get_task_tree(
-            filtered=True,
-            tz_offset=900,
-            service=task_service,
-            filter_service=filter_service,
-        )
-    except InvalidTimezoneOffsetError as exc:
-        assert exc.code == "invalid_tz_offset"
-    else:
-        raise AssertionError("invalid_tz_offset must be raised")
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/api/tasks?filtered=true&tz_offset=-540")
+            invalid = await client.get("/api/tasks?filtered=true&tz_offset=900")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()[0]["id"] == str(root.id)
+    assert invalid.status_code == 400
+    assert invalid.json()["error"]["code"] == "invalid_tz_offset"
