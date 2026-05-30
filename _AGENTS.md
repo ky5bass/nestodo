@@ -8,11 +8,16 @@
 
 実装を開始する前に、以下のファイルをこの順で必ず読むこと:
 
-1. `.kiro/specs/<spec名>/tasks.md` — 実装タスク一覧
-2. `.kiro/specs/<spec名>/design.md` — インターフェース・データ構造・設計判断の理由
-3. `.kiro/specs/<spec名>/requirements.md` — ユーザーストーリーと受け入れ基準
-4. `docs/requirements-spec.md` — 全体アーキテクチャ・データモデル
-5. `.kiro/steering/development-rules.md` — 共通の開発ルール・spec 運用ルール
+1. `docs/spec-index.md` — spec 一覧、依存関係、関連領域、共通領域
+2. `.kiro/specs/<spec名>/tasks.md` — 実装タスク一覧
+3. `.kiro/specs/<spec名>/design.md` — インターフェース・データ構造・設計判断の理由
+4. `.kiro/specs/<spec名>/requirements.md` — ユーザーストーリーと受け入れ基準
+5. `docs/requirements-spec.md` — 全体アーキテクチャ・データモデル
+6. `.kiro/steering/development-rules.md` — 共通の開発ルール・spec 運用ルール
+
+`docs/spec-index.md` を確認し、対象 spec に依存 spec がある場合は、実装前に依存 spec の `requirements.md` と `design.md` を読むこと。関連 spec がある場合は、今回の変更が関連領域に触れると判断したときだけ、その spec の `requirements.md` と `design.md` を読むこと。
+
+他 spec の `tasks.md` は、実装順序・未完了タスク・チェックポイント確認が必要な場合のみ読むこと。横断的な依存関係や共通化の判断のために、全 spec の `tasks.md` を毎回読む必要はない。
 
 spec 名が指定されていない場合は、`.kiro/specs/` 配下の候補を確認すること。`_archived` 配下は実装対象から除外し、対象 spec を特定できない場合は実装を開始せずユーザーに確認すること。
 
@@ -30,9 +35,12 @@ spec 名が指定されていない場合は、`.kiro/specs/` 配下の候補を
 1. `.kiro/specs/<spec名>/requirements.md`
 2. `.kiro/specs/<spec名>/design.md`
 3. `.kiro/specs/<spec名>/tasks.md`
-4. `docs/requirements-spec.md`
-5. `AGENTS.md`（この実装ガイド）
-6. `.kiro/steering/development-rules.md`
+4. 依存 spec の `requirements.md`
+5. 依存 spec の `design.md`
+6. `docs/requirements-spec.md`
+7. `docs/spec-index.md`
+8. `AGENTS.md`（この実装ガイド）
+9. `.kiro/steering/development-rules.md`
 
 ## 実装スコープの原則
 
