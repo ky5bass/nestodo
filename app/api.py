@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response, status
@@ -16,13 +17,17 @@ from app.schemas import (
     UpdateTaskInput,
     UpsertTaskContentInput,
 )
-from app.services import TaskService
+from app.services import FilterService, TaskService
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
 def get_task_service(session: AsyncSession = Depends(get_session)) -> TaskService:
     return TaskService(session)
+
+
+def get_filter_service(session: AsyncSession = Depends(get_session)) -> FilterService:
+    return FilterService(session)
 
 
 @router.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
@@ -33,7 +38,14 @@ async def create_task(
 
 
 @router.get("", response_model=list[TaskTreeOut])
-async def get_task_tree(service: TaskService = Depends(get_task_service)) -> list[TaskTreeOut]:
+async def get_task_tree(
+    filtered: bool = Query(default=False),
+    tz_offset: int | None = Query(default=None),
+    service: TaskService = Depends(get_task_service),
+    filter_service: FilterService = Depends(get_filter_service),
+) -> list[TaskTreeOut]:
+    if filtered:
+        return await filter_service.get_filtered_task_tree(datetime.now(timezone.utc), tz_offset)
     return await service.get_tree()
 
 
