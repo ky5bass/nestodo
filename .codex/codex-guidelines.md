@@ -64,6 +64,15 @@ spec 名が指定されていない場合は、`.kiro/specs/` 配下の候補を
 
 ---
 
+## Python 実行環境
+
+- Python / FastAPI 関連のコマンドは、プロジェクト直下の `.venv` を優先して使用すること
+- `python` は `.venv/bin/python`、`pip` は `.venv/bin/python -m pip` を使用すること
+- `.venv` が存在しない場合は、`.python-version` の Python で `python -m venv .venv` を実行し、`.venv/bin/python -m pip install -e '.[test]'` で依存関係をインストールすること
+- グローバル環境や pyenv のベース環境へパッケージをインストールしないこと
+
+---
+
 ## 検証コマンド（コミット前に必ず実行）
 
 実際の package script、Docker Compose サービス名、実行ディレクトリを先に確認し、プロジェクトで定義されているコマンドを優先すること。以下はコマンドが未整備の場合の標準候補。
@@ -79,9 +88,9 @@ npm run lint              # ESLint
 ### バックエンド（Python / FastAPI）
 
 ```bash
-python -m pytest          # ユニットテスト
-ruff check .              # リント
-mypy .                    # 型チェック
+.venv/bin/python -m pytest      # ユニットテスト
+.venv/bin/python -m ruff check . # リント
+.venv/bin/python -m mypy .       # 型チェック
 ```
 
 > 実際のコマンドが判明した場合、または変更された場合はこのファイルを更新すること。検証を実行できない場合は、理由と未検証の範囲を最終報告に明記すること。

@@ -7,6 +7,13 @@
 - **定型作業は hook で自動化**: Kiro の hook を活用して繰り返し作業を排除する
 - **spec は簡潔に保つ**: 各ファイルは 100〜150 行以内。肥大化したら分割する
 
+## Python 開発環境
+
+- Python は `.python-version` に従い、プロジェクト直下の `.venv` を使用する
+- Python コマンドは `.venv/bin/python`、pip は `.venv/bin/python -m pip` を使う
+- `.venv` がない場合は `python -m venv .venv` の後、`.venv/bin/python -m pip install -e '.[test]'` で依存関係を入れる
+- グローバル環境や pyenv のベース環境へ依存関係をインストールしない
+
 ---
 
 ## 1機能の開発フロー
