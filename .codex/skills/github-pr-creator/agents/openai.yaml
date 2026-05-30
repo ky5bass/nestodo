@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub PR 作成"
+  short_description: "完了した spec 作業の PR を作成する"
+  default_prompt: "完了した spec 作業の Pull Request を作成してください。"
