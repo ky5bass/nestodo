@@ -58,14 +58,7 @@ spec 名が指定されていない場合は、`.kiro/specs/` 配下の候補を
 
 ## プロジェクト構成
 
-| レイヤー | 技術 |
-|---------|------|
-| フロントエンド | Angular（スタンドアロンコンポーネント） |
-| バックエンド | FastAPI（Python・非同期） |
-| ORM | SQLAlchemy 2.0+（async） |
-| DB | PostgreSQL |
-| 認証 | JWT（アクセストークン + リフレッシュトークン） |
-| 開発環境 | Docker / Docker Compose |
+技術スタックと全体アーキテクチャは `docs/requirements-spec.md` を正とすること。
 
 ---
 
