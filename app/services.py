@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+import calendar
+from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -89,7 +90,7 @@ class TaskService:
         tasks = await self.repo.list_all()
         return self._build_tree(tasks)
 
-    async def update(self, task_id: UUID, input: UpdateTaskInput) -> UpdateResult:
+    async def update(self, task_id: UUID, input: UpdateTaskInput) -> UpdateResult | CompleteResult:
         task = await self.repo.get_for_update(task_id)
         if task is None:
             raise NotFoundError("タスクが見つかりません", {"id": str(task_id)})
@@ -259,11 +260,13 @@ class TaskService:
 
     def _logical_today(self, tz_offset: int | None) -> date:
         self._validate_tz_offset(tz_offset)
+        assert tz_offset is not None
         # JS getTimezoneOffset は UTC - local の分数なので、符号を反転してローカル時刻へ寄せる。
         local_now = datetime.now(timezone.utc) - timedelta(minutes=tz_offset)
         if local_now.hour < DAY_BOUNDARY_HOUR:
             local_now -= timedelta(days=1)
-        return local_now.date()
+        logical_date: date = local_now.date()
+        return logical_date
 
     def _should_update_last_done(self, input: UpdateTaskInput, fields: set[str]) -> bool:
         return input.update_last_done and bool({"progress", "actual_time"} & fields)
@@ -319,3 +322,93 @@ class TaskService:
             task for task in tasks if task.id == root_id
         ]
         return [build(root) for root in roots]
+
+
+class FilterService:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+        self.repo = TaskRepository(session)
+
+    async def get_filtered_task_tree(
+        self, now: datetime, timezone_offset: int | None
+    ) -> list[TaskTreeOut]:
+        self._validate_tz_offset(timezone_offset)
+        assert timezone_offset is not None
+        tasks = await self.repo.list_all()
+        return self.get_filtered_tree(tasks, now, timezone_offset)
+
+    def get_day_boundary(
+        self, now: datetime, timezone_offset: int
+    ) -> tuple[datetime, datetime]:
+        self._validate_tz_offset(timezone_offset)
+        local_now = self._to_local_datetime(now, timezone_offset)
+        logical_date = local_now.date()
+        if local_now.hour < DAY_BOUNDARY_HOUR:
+            logical_date -= timedelta(days=1)
+        start = datetime.combine(logical_date, time(hour=DAY_BOUNDARY_HOUR))
+        return start, start + timedelta(days=1)
+
+    def compute_effective_at(self, task: Task, ancestors: list[Task]) -> datetime | None:
+        if task.event_at is not None:
+            return task.event_at
+        for ancestor in reversed(ancestors):
+            if ancestor.event_at is not None:
+                return ancestor.event_at
+        return None
+
+    def evaluate_visibility(
+        self, task: Task, effective_at: datetime | None, today: date
+    ) -> bool:
+        if task.status == TaskStatus.complete:
+            return task.last_done_at == today
+        if effective_at is None:
+            return False
+        return effective_at.date() <= self._add_month(today, 1)
+
+    def get_filtered_tree(
+        self, all_tasks: list[Task], now: datetime, timezone_offset: int
+    ) -> list[TaskTreeOut]:
+        self._validate_tz_offset(timezone_offset)
+        day_start, _ = self.get_day_boundary(now, timezone_offset)
+        today = day_start.date()
+        children_by_parent: dict[UUID | None, list[Task]] = {}
+        for task in all_tasks:
+            children_by_parent.setdefault(task.parent_id, []).append(task)
+        for children in children_by_parent.values():
+            children.sort(key=lambda child: (child.sort_order, child.created_at))
+
+        def build(task: Task, ancestors: list[Task]) -> TaskTreeOut | None:
+            effective_at = self.compute_effective_at(task, ancestors)
+            children = [
+                node
+                for child in children_by_parent.get(task.id, [])
+                if (node := build(child, [*ancestors, task])) is not None
+            ]
+            if not children and not self.evaluate_visibility(task, effective_at, today):
+                return None
+            return TaskTreeOut(**TaskOut.model_validate(task).model_dump(), children=children)
+
+        return [
+            node
+            for root in children_by_parent.get(None, [])
+            if (node := build(root, [])) is not None
+        ]
+
+    def _validate_tz_offset(self, timezone_offset: int | None) -> None:
+        if timezone_offset is None or timezone_offset < -720 or timezone_offset > 840:
+            raise InvalidTimezoneOffsetError()
+
+    def _to_local_datetime(self, now: datetime, timezone_offset: int) -> datetime:
+        now_utc = now
+        if now_utc.tzinfo is None:
+            now_utc = now_utc.replace(tzinfo=timezone.utc)
+        else:
+            now_utc = now_utc.astimezone(timezone.utc)
+        return (now_utc - timedelta(minutes=timezone_offset)).replace(tzinfo=None)
+
+    def _add_month(self, value: date, months: int) -> date:
+        month_index = value.month - 1 + months
+        year = value.year + month_index // 12
+        month = month_index % 12 + 1
+        day = min(value.day, calendar.monthrange(year, month)[1])
+        return date(year, month, day)

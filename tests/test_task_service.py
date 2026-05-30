@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import (
     HierarchyLimitError,
@@ -11,39 +12,41 @@ from app.errors import (
     RootEventAtRequiredError,
     StatusConflictError,
 )
-from app.models import TaskStatus
+from app.models import TaskStatus, TaskType
 from app.repositories import TaskRepository
-from app.schemas import CreateTaskInput, UpdateTaskInput, UpsertTaskContentInput
+from app.schemas import CreateTaskInput, TaskOut, UpdateTaskInput, UpsertTaskContentInput
 from app.services import TaskService
 
 
 ROOT_EVENT_AT = datetime(2026, 5, 31, 9, 0, 0)
 
 
-async def create_root(service: TaskService, name: str = "root"):
+async def create_root(service: TaskService, name: str = "root") -> TaskOut:
     return await service.create(
         CreateTaskInput(
             task_name=name,
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=1.0,
             event_at=ROOT_EVENT_AT,
         )
     )
 
 
-async def test_create_root_requires_event_at(session):
+async def test_create_root_requires_event_at(session: AsyncSession) -> None:
     service = TaskService(session)
     with pytest.raises(RootEventAtRequiredError):
-        await service.create(CreateTaskInput(task_name="root", task_type="TODO", sort_order=1.0))
+        await service.create(
+            CreateTaskInput(task_name="root", task_type=TaskType.TODO, sort_order=1.0)
+        )
 
 
-async def test_create_sets_defaults_and_get_tree(session):
+async def test_create_sets_defaults_and_get_tree(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
     child = await service.create(
         CreateTaskInput(
             task_name="child",
-            task_type="TODO",
+            task_type=TaskType.TODO,
             sort_order=2.0,
             parent_id=root.id,
         )
@@ -58,7 +61,7 @@ async def test_create_sets_defaults_and_get_tree(session):
     assert tree[0].children[0].id == child.id
 
 
-async def test_create_fails_for_unknown_parent(session):
+async def test_create_fails_for_unknown_parent(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
     await service.delete(root.id)
@@ -67,21 +70,21 @@ async def test_create_fails_for_unknown_parent(session):
         await service.create(
             CreateTaskInput(
                 task_name="orphan",
-                task_type="TODO",
+                task_type=TaskType.TODO,
                 sort_order=1.0,
                 parent_id=root.id,
             )
         )
 
 
-async def test_hierarchy_limit(session):
+async def test_hierarchy_limit(session: AsyncSession) -> None:
     service = TaskService(session)
     current = await create_root(service)
     for index in range(9):
         current = await service.create(
             CreateTaskInput(
                 task_name=f"level-{index}",
-                task_type="TODO",
+                task_type=TaskType.TODO,
                 sort_order=float(index),
                 parent_id=current.id,
             )
@@ -91,14 +94,16 @@ async def test_hierarchy_limit(session):
         await service.create(
             CreateTaskInput(
                 task_name="too-deep",
-                task_type="TODO",
+                task_type=TaskType.TODO,
                 sort_order=11.0,
                 parent_id=current.id,
             )
         )
 
 
-async def test_partial_update_preserves_unspecified_fields_and_last_done(session):
+async def test_partial_update_preserves_unspecified_fields_and_last_done(
+    session: AsyncSession,
+) -> None:
     service = TaskService(session)
     root = await create_root(service)
 
@@ -113,7 +118,7 @@ async def test_partial_update_preserves_unspecified_fields_and_last_done(session
     assert updated.last_done_at is not None
 
 
-async def test_root_event_at_invariant_on_update(session):
+async def test_root_event_at_invariant_on_update(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
 
@@ -121,16 +126,16 @@ async def test_root_event_at_invariant_on_update(session):
         await service.update(root.id, UpdateTaskInput(event_at=None))
 
 
-async def test_status_back_requires_progress_under_100(session):
+async def test_status_back_requires_progress_under_100(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
     await service.complete(root.id, confirmed=False, tz_offset=-540)
 
     with pytest.raises(StatusConflictError):
-        await service.update(root.id, UpdateTaskInput(status="incomplete"))
+        await service.update(root.id, UpdateTaskInput(status=TaskStatus.incomplete))
 
     result = await service.update(
-        root.id, UpdateTaskInput(status="incomplete", progress=10, tz_offset=-540)
+        root.id, UpdateTaskInput(status=TaskStatus.incomplete, progress=10, tz_offset=-540)
     )
     assert result.type == "updated"
     updated = await service.get_by_id(root.id)
@@ -138,11 +143,15 @@ async def test_status_back_requires_progress_under_100(session):
     assert updated.progress == 10
 
 
-async def test_completion_requires_confirmation_for_unfinished_descendants(session):
+async def test_completion_requires_confirmation_for_unfinished_descendants(
+    session: AsyncSession,
+) -> None:
     service = TaskService(session)
     root = await create_root(service)
     child = await service.create(
-        CreateTaskInput(task_name="child", task_type="TODO", sort_order=1.0, parent_id=root.id)
+        CreateTaskInput(
+            task_name="child", task_type=TaskType.TODO, sort_order=1.0, parent_id=root.id
+        )
     )
 
     result = await service.update(root.id, UpdateTaskInput(progress=100, tz_offset=-540))
@@ -161,7 +170,7 @@ async def test_completion_requires_confirmation_for_unfinished_descendants(sessi
     assert root_after.last_done_at == child_after.last_done_at
 
 
-async def test_completion_requires_valid_tz_offset(session):
+async def test_completion_requires_valid_tz_offset(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
 
@@ -169,11 +178,13 @@ async def test_completion_requires_valid_tz_offset(session):
         await service.update(root.id, UpdateTaskInput(progress=100))
 
 
-async def test_delete_cascades_contents(session):
+async def test_delete_cascades_contents(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
     child = await service.create(
-        CreateTaskInput(task_name="child", task_type="TODO", sort_order=1.0, parent_id=root.id)
+        CreateTaskInput(
+            task_name="child", task_type=TaskType.TODO, sort_order=1.0, parent_id=root.id
+        )
     )
     await service.upsert_content(child.id, UpsertTaskContentInput(notes="note"))
 
@@ -185,7 +196,7 @@ async def test_delete_cascades_contents(session):
     assert await repo.get_content(child.id) is None
 
 
-async def test_content_preview_and_detail_flag(session):
+async def test_content_preview_and_detail_flag(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
 
@@ -208,7 +219,7 @@ async def test_content_preview_and_detail_flag(session):
     assert empty.detail_flag is False
 
 
-async def test_delete_content_clears_summary_fields(session):
+async def test_delete_content_clears_summary_fields(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
     await service.upsert_content(root.id, UpsertTaskContentInput(notes="note"))
