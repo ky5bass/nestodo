@@ -26,7 +26,38 @@
 
 ## データモデル
 
-（各specで定義されるエンティティをここに集約予定）
+PostgreSQL ENUM: `task_type_enum`(`'TODO'|'SCHEDULE'`)、`task_status_enum`(`'incomplete'|'complete'`)、`priority_enum`(`'none'|'priority'|'highest'`)
+
+### tasks テーブル
+
+| カラム | 型 | 制約 |
+|---|---|---|
+| id | UUID | PK |
+| parent_id | UUID | FK(self) nullable |
+| task_name | VARCHAR(255) | NOT NULL |
+| task_type | task_type_enum | NOT NULL |
+| status | task_status_enum | DEFAULT 'incomplete' |
+| progress | SMALLINT | NULL, 0〜100 |
+| priority | priority_enum | DEFAULT 'none' |
+| sort_order | FLOAT | NOT NULL |
+| event_at | TIMESTAMP | Root_Task: NOT NULL |
+| estimated_time | INT | NULL（分単位） |
+| actual_time | INT | NULL（分単位） |
+| preview | TEXT | NULL |
+| detail_flag | BOOLEAN | DEFAULT false |
+| export_flag | BOOLEAN | DEFAULT true |
+| last_done_at | DATE | NULL |
+| created_at | TIMESTAMP | DEFAULT now() |
+| updated_at | TIMESTAMP | DEFAULT now() |
+
+### task_contents テーブル
+
+| カラム | 型 | 制約 |
+|---|---|---|
+| task_id | UUID | PK, FK → tasks.id |
+| pre_info | TEXT | NULL |
+| notes | TEXT | NULL |
+| reflection | TEXT | NULL |
 
 ## 開発環境
 

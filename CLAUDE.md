@@ -32,7 +32,7 @@
 
 詳細は `#project-structure` スキルを参照。主要パス:
 
-- `.kiro/specs/<feature>/` — requirements.md / design.md / task.md
+- `.kiro/specs/<feature>/` — requirements.md / design.md / tasks.md
 - `.kiro/steering/development-rules.md` — 開発ルール
 - `.claude/commands/` — カスタムスラッシュコマンド
 - `docs/CONTRIBUTING.md` — 開発フロー詳細
@@ -52,7 +52,7 @@
 ### やらないこと
 - Kiro の役割である **要件定義・設計の主導**（提案はしてよい）
 - Codex の役割である **機能実装の主担当**（修正・補完はしてよい）
-- Kiro の役割である **spec 完了処理**（バージョン付与・一覧更新・`task.md` 削除）
+- Kiro の役割である **spec 完了処理**（バージョン付与・一覧更新・`tasks.md` 削除）
 
 ---
 

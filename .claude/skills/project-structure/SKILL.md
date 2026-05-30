@@ -17,7 +17,7 @@ project-root/
 │       └── <feature-name>/
 │           ├── requirements.md
 │           ├── design.md
-│           └── task.md
+│           └── tasks.md
 │
 ├── .codex/                # Codex のプロジェクトスコープ設定
 │   └── config.toml        # Codex CLI 設定（sandbox, approval policy など）
