@@ -57,11 +57,18 @@ Kiro に以下のように依頼する:
 
 spec 変更のみを含む PR をレビューしてマージする。
 
-人間がレビューする前に Claude Code へ以下を依頼すると、ルール準拠や記述品質の確認を行ってくれる:
+人間がレビューする前に Claude Code へ以下を依頼すると、`/spec-quality-review` スキルでルール準拠や記述品質の確認を行ってくれる:
 
 ```
-.kiro/specs/<spec名>/ の requirements.md と design.md をレビューしてください。
-development-rules.md のルール（行数・設計理由の明記など）に沿っているか確認してください。
+/spec-quality-review
+
+以下の spec PR をレビューしてください。
+
+PR: <PR URL>
+Issue: <Issue URL>
+
+対象 spec:
+- `.kiro/specs/<spec名>/`
 ```
 
 **PR を分ける理由**: 仕様の合意とコードの実装を分離することで、レビュアーが「仕様は正しいか」と「実装は正しいか」を独立して判断できる。spec の修正コストはコードより圧倒的に低いため、実装前に合意を取ることが重要。また、spec を先にマージしておくと Codex が正確な spec に基づいて実装できる。

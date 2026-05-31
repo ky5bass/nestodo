@@ -5,7 +5,7 @@
 
 ## 対応 spec / Issue
 
-- spec:
+- spec（複数可）:
   - `.kiro/specs/<!-- spec名 -->/`
 - Issue: #
 
@@ -26,5 +26,6 @@
 
 ## 検証
 
-- `.kiro/specs/<!-- spec名 -->/requirements.md`: <!-- 行数 --> 行
-- `.kiro/specs/<!-- spec名 -->/design.md`: <!-- 行数 --> 行
+- spec ごとに以下を列挙:
+  - `.kiro/specs/<!-- spec名 -->/requirements.md`: <!-- 行数 --> 行
+  - `.kiro/specs/<!-- spec名 -->/design.md`: <!-- 行数 --> 行
