@@ -89,6 +89,106 @@ describe('DetailSaveService', () => {
     expect(service.error()?.field).toBe('task_name');
   }));
 
+  it('Property 1: Completion_Triggerはtz_offset付きでサーバー確認フローへ送信する', fakeAsync(() => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.constant({ field: 'status', value: 'complete' }),
+          fc.constant({ field: 'progress', value: 100 })
+        ),
+        (trigger) => {
+          TestBed.resetTestingModule();
+          TestBed.configureTestingModule({
+            providers: [provideHttpClient(), provideHttpClientTesting()]
+          });
+          const localService = TestBed.inject(DetailSaveService);
+          const localHttp = TestBed.inject(HttpTestingController);
+          localService.selectTask(task({ progress: 40 }));
+
+          localService.saveField('task-1', trigger.field, trigger.value);
+
+          expect(localService.selectedTask()?.progress).toBe(40);
+          const request = localHttp.expectOne('/api/tasks/task-1');
+          expect(request.request.body[trigger.field]).toBe(trigger.value);
+          expect(typeof request.request.body.tz_offset).toBe('number');
+          request.flush({
+            type: 'confirmation_required',
+            task: null,
+            pending_children: [{ id: 'child-1', task_name: '子タスク', status: 'incomplete' }]
+          });
+          expect(localService.batchCompletionData()?.pendingChildren.length).toBe(1);
+          localHttp.verify();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  }));
+
+  it('完了成功レスポンスはUIへ反映してツリーを再取得する', fakeAsync(() => {
+    service.saveField('task-1', 'progress', 100);
+
+    const request = http.expectOne('/api/tasks/task-1');
+    request.flush({
+      type: 'completed',
+      task: task({ status: 'complete', progress: 100 })
+    });
+    http.expectOne((req) => req.urlWithParams.startsWith('/api/tasks?filtered=true')).flush([]);
+
+    expect(service.selectedTask()?.status).toBe('complete');
+    expect(service.selectedTask()?.progress).toBe(100);
+  }));
+
+  it('Property 2: キャンセル時は元のprogressへロールバックする', fakeAsync(() => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 99 }), (progress) => {
+        TestBed.resetTestingModule();
+        TestBed.configureTestingModule({
+          providers: [provideHttpClient(), provideHttpClientTesting()]
+        });
+        const localService = TestBed.inject(DetailSaveService);
+        const localHttp = TestBed.inject(HttpTestingController);
+        localService.selectTask(task({ progress, status: 'incomplete' }));
+
+        localService.saveField('task-1', 'progress', 100);
+        localHttp.expectOne('/api/tasks/task-1').flush({
+          type: 'confirmation_required',
+          task: null,
+          pending_children: [{ id: 'child-1', task_name: '子タスク', status: 'incomplete' }]
+        });
+        localService.cancelBatchCompletion();
+
+        expect(localService.selectedTask()?.progress).toBe(progress);
+        expect(localService.selectedTask()?.status).toBe('incomplete');
+        localHttp.verify();
+      }),
+      { numRuns: 100 }
+    );
+  }));
+
+  it('一括完了の失敗はモーダル内エラーにし、リトライで同じ完了リクエストを送る', fakeAsync(() => {
+    service.saveField('task-1', 'progress', 100);
+    http.expectOne('/api/tasks/task-1').flush({
+      type: 'confirmation_required',
+      task: null,
+      pending_children: [{ id: 'child-1', task_name: '子タスク', status: 'incomplete' }]
+    });
+
+    service.confirmBatchCompletion();
+    http
+      .expectOne((req) => req.urlWithParams.startsWith('/api/tasks/task-1/complete?confirmed=true'))
+      .flush({}, { status: 500, statusText: 'Server Error' });
+    expect(service.batchCompletionError()).toBe('一括完了に失敗しました');
+
+    service.confirmBatchCompletion();
+    http
+      .expectOne((req) => req.urlWithParams.startsWith('/api/tasks/task-1/complete?confirmed=true'))
+      .flush({ type: 'completed', task: task({ status: 'complete', progress: 100 }) });
+    http.expectOne((req) => req.urlWithParams.startsWith('/api/tasks?filtered=true')).flush([]);
+
+    expect(service.batchCompletionData()).toBeNull();
+    expect(service.selectedTask()?.status).toBe('complete');
+  }));
+
   it('Property 4: デバウンスは最新値のみ送信', fakeAsync(() => {
     fc.assert(
       fc.property(

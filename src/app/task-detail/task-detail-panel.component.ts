@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, effect, signal } from '@angular/core';
 
+import { BatchCompletionModalComponent } from './batch-completion-modal.component';
 import { DetailSaveService } from './detail-save.service';
 import { RevertModalComponent } from './revert-modal.component';
 import {
@@ -16,7 +17,7 @@ import { TimeInputComponent } from './time-input.component';
 @Component({
   selector: 'app-task-detail-panel',
   standalone: true,
-  imports: [CommonModule, TimeInputComponent, RevertModalComponent],
+  imports: [CommonModule, TimeInputComponent, RevertModalComponent, BatchCompletionModalComponent],
   template: `
     @if (currentTask(); as detail) {
       <aside class="detail-panel" aria-label="タスク詳細">
@@ -35,8 +36,18 @@ import { TimeInputComponent } from './time-input.component';
 
         <div class="actions-row">
           @if (detail.status !== 'complete') {
-            <button type="button" class="complete-button" (click)="complete(detail)">
-              完了
+            <button
+              type="button"
+              class="complete-button"
+              (click)="complete(detail)"
+              [disabled]="save.isCompletionBusy(detail.id)"
+            >
+              @if (save.isCompletionBusy(detail.id)) {
+                <span class="spinner" aria-hidden="true"></span>
+                処理中
+              } @else {
+                完了
+              }
             </button>
           }
           <button
@@ -92,6 +103,7 @@ import { TimeInputComponent } from './time-input.component';
               (focus)="activeLastDoneField.set('progress')"
               (change)="saveProgress(detail, $any($event.target).value)"
               [attr.aria-invalid]="progressError()"
+              [readonly]="save.isCompletionBusy(detail.id)"
             />
           </label>
           @if (progressError()) {
@@ -165,6 +177,15 @@ import { TimeInputComponent } from './time-input.component';
       </aside>
 
       <app-revert-modal [open]="revertOpen()" (closed)="handleRevert(detail, $event)" />
+      <app-batch-completion-modal
+        [open]="save.batchCompletionData() !== null"
+        [data]="save.batchCompletionData()"
+        [loading]="save.batchCompletionLoading()"
+        [error]="save.batchCompletionError()"
+        (confirm)="save.confirmBatchCompletion()"
+        (retry)="save.confirmBatchCompletion()"
+        (cancelled)="save.cancelBatchCompletion()"
+      />
     }
   `,
   styles: [
@@ -227,12 +248,22 @@ import { TimeInputComponent } from './time-input.component';
       }
 
       .complete-button {
+        align-items: center;
         background: #1f6f68;
         border: 1px solid #1f6f68;
         border-radius: 6px;
         color: #ffffff;
         cursor: pointer;
+        display: inline-flex;
+        gap: 8px;
+        justify-content: center;
+        min-width: 78px;
         padding: 8px 12px;
+      }
+
+      .complete-button:disabled {
+        cursor: progress;
+        opacity: 0.72;
       }
 
       .fields,
@@ -299,6 +330,21 @@ import { TimeInputComponent } from './time-input.component';
         border-radius: 6px;
         cursor: pointer;
         padding: 6px 8px;
+      }
+
+      .spinner {
+        animation: spin 0.8s linear infinite;
+        border: 2px solid rgb(255 255 255 / 44%);
+        border-radius: 999px;
+        border-top-color: #ffffff;
+        height: 14px;
+        width: 14px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       @media (max-width: 520px) {

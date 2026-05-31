@@ -2,7 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { Observable, Subscription, timer } from 'rxjs';
 
-import { TaskContentField, TaskDetail, TaskUpdateResult } from './task-detail.model';
+import { TaskListService } from '../task-list/task-list.service';
+import {
+  BatchCompletionModalData,
+  TaskContentField,
+  TaskDetail,
+  TaskUpdateResult
+} from './task-detail.model';
 
 export interface SaveOptions {
   update_last_done?: boolean;
@@ -26,20 +32,38 @@ interface SaveError {
   message: string;
 }
 
+interface CompletionFlow {
+  taskId: string;
+  values: Partial<TaskDetail>;
+  previous: TaskDetail | null;
+}
+
+interface BatchCompletionState extends CompletionFlow {
+  data: BatchCompletionModalData;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DetailSaveService {
   private readonly tasksById = signal<Record<string, TaskDetail>>({});
   private readonly pending = new Map<string, PendingSave>();
   private readonly timers = new Map<string, Subscription>();
+  private readonly completionLoadingIds = signal<Set<string>>(new Set());
+  private readonly batchCompletionState = signal<BatchCompletionState | null>(null);
 
   readonly selectedTaskId = signal<string | null>(null);
   readonly error = signal<SaveError | null>(null);
+  readonly batchCompletionLoading = signal(false);
+  readonly batchCompletionError = signal<string | null>(null);
+  readonly batchCompletionData = computed(() => this.batchCompletionState()?.data ?? null);
   readonly selectedTask = computed(() => {
     const taskId = this.selectedTaskId();
     return taskId ? (this.tasksById()[taskId] ?? null) : null;
   });
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly taskList: TaskListService
+  ) {}
 
   setTask(task: TaskDetail): void {
     this.tasksById.update((tasks) => ({ ...tasks, [task.id]: this.normalizeTask(task) }));
@@ -55,6 +79,10 @@ export class DetailSaveService {
   }
 
   saveField(taskId: string, field: string, value: unknown, options?: SaveOptions): void {
+    if (this.isCompletionTrigger(field, value)) {
+      this.startCompletionFlow(taskId, { [field]: value } as Partial<TaskDetail>, options);
+      return;
+    }
     const previous = this.snapshot(taskId);
     this.patchTask(taskId, { [field]: value });
     const save: PendingSave = { taskId, field, kind: 'field', value, previous, options };
@@ -62,6 +90,10 @@ export class DetailSaveService {
   }
 
   saveFields(taskId: string, values: Partial<TaskDetail>, options?: SaveOptions): void {
+    if (this.hasCompletionTrigger(values)) {
+      this.startCompletionFlow(taskId, values, options);
+      return;
+    }
     const previous = this.snapshot(taskId);
     this.patchTask(taskId, values);
     const save: PendingSave = {
@@ -102,6 +134,49 @@ export class DetailSaveService {
 
   clearError(): void {
     this.error.set(null);
+  }
+
+  isCompletionBusy(taskId: string): boolean {
+    return this.completionLoadingIds().has(taskId) || this.batchCompletionLoading();
+  }
+
+  cancelBatchCompletion(): void {
+    const state = this.batchCompletionState();
+    if (!state || this.batchCompletionLoading()) {
+      return;
+    }
+    this.restorePrevious(state);
+    this.batchCompletionState.set(null);
+    this.batchCompletionError.set(null);
+  }
+
+  confirmBatchCompletion(): void {
+    const state = this.batchCompletionState();
+    if (!state) {
+      return;
+    }
+    this.batchCompletionLoading.set(true);
+    this.batchCompletionError.set(null);
+    const tzOffset = new Date().getTimezoneOffset();
+    this.http
+      .post<TaskUpdateResult>(
+        `/api/tasks/${state.taskId}/complete?confirmed=true&tz_offset=${tzOffset}`,
+        {}
+      )
+      .subscribe({
+        next: (result) => {
+          if (result.task) {
+            this.setTask(result.task);
+          }
+          this.taskList.loadTasks();
+          this.batchCompletionLoading.set(false);
+          this.batchCompletionState.set(null);
+        },
+        error: () => {
+          this.batchCompletionLoading.set(false);
+          this.batchCompletionError.set('一括完了に失敗しました');
+        }
+      });
   }
 
   private schedule(save: PendingSave): void {
@@ -147,6 +222,68 @@ export class DetailSaveService {
       });
   }
 
+  private isCompletionTrigger(field: string, value: unknown): boolean {
+    return (field === 'status' && value === 'complete') || (field === 'progress' && value === 100);
+  }
+
+  private hasCompletionTrigger(values: Partial<TaskDetail>): boolean {
+    return values.status === 'complete' || values.progress === 100;
+  }
+
+  private startCompletionFlow(
+    taskId: string,
+    values: Partial<TaskDetail>,
+    options?: SaveOptions
+  ): void {
+    const previous = this.snapshot(taskId);
+    const tzOffset = options?.tz_offset ?? new Date().getTimezoneOffset();
+    this.setCompletionLoading(taskId, true);
+    this.http
+      .put<TaskUpdateResult>(`/api/tasks/${taskId}`, { ...values, ...options, tz_offset: tzOffset })
+      .subscribe({
+        next: (result) => {
+          this.setCompletionLoading(taskId, false);
+          if (result.type === 'confirmation_required') {
+            this.openBatchCompletionModal(taskId, values, previous, result);
+            return;
+          }
+          if (result.task) {
+            this.setTask(result.task);
+          }
+          this.taskList.loadTasks();
+          this.error.set(null);
+        },
+        error: () => {
+          this.setCompletionLoading(taskId, false);
+          this.restorePrevious({ taskId, previous });
+          this.error.set({
+            taskId,
+            field: Object.keys(values).sort().join('+'),
+            message: '完了リクエストに失敗しました'
+          });
+        }
+      });
+  }
+
+  private openBatchCompletionModal(
+    taskId: string,
+    values: Partial<TaskDetail>,
+    previous: TaskDetail | null,
+    result: TaskUpdateResult
+  ): void {
+    const taskName = previous?.task_name ?? this.tasksById()[taskId]?.task_name ?? '';
+    this.batchCompletionState.set({
+      taskId,
+      values,
+      previous,
+      data: {
+        taskName,
+        pendingChildren: result.pending_children ?? []
+      }
+    });
+    this.batchCompletionError.set(null);
+  }
+
   private fieldBody(save: PendingSave): Record<string, unknown> {
     const values =
       save.value && typeof save.value === 'object' && !Array.isArray(save.value)
@@ -170,10 +307,14 @@ export class DetailSaveService {
   }
 
   private rollback(save: PendingSave): void {
-    if (!save.previous) {
+    this.restorePrevious(save);
+  }
+
+  private restorePrevious(state: { taskId: string; previous: TaskDetail | null }): void {
+    if (!state.previous) {
       return;
     }
-    this.tasksById.update((tasks) => ({ ...tasks, [save.taskId]: save.previous as TaskDetail }));
+    this.tasksById.update((tasks) => ({ ...tasks, [state.taskId]: state.previous as TaskDetail }));
   }
 
   private snapshot(taskId: string): TaskDetail | null {
@@ -206,5 +347,17 @@ export class DetailSaveService {
 
   private key(taskId: string, field: string): string {
     return `${taskId}:${field}`;
+  }
+
+  private setCompletionLoading(taskId: string, loading: boolean): void {
+    this.completionLoadingIds.update((ids) => {
+      const next = new Set(ids);
+      if (loading) {
+        next.add(taskId);
+      } else {
+        next.delete(taskId);
+      }
+      return next;
+    });
   }
 }

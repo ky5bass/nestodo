@@ -35,10 +35,24 @@ export interface TaskDetail {
 export interface TaskUpdateResult {
   type: 'updated' | 'completed' | 'confirmation_required';
   task: TaskDetail | null;
-  pending_children?: { id: string; task_name: string; status: TaskStatus }[] | null;
+  pending_children?: PendingChild[] | null;
 }
 
 export interface RevertResult {
   confirmed: boolean;
   progress?: number;
 }
+
+export interface PendingChild {
+  id: string;
+  task_id?: string;
+  task_name: string;
+  status: TaskStatus;
+}
+
+export interface BatchCompletionModalData {
+  taskName: string;
+  pendingChildren: PendingChild[];
+}
+
+export type BatchCompletionModalResult = 'confirm' | 'cancel';
