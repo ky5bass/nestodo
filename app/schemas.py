@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models import Priority, TaskStatus, TaskType
+
+
+def normalize_datetime_for_db(value: datetime | None) -> datetime | None:
+    if value is None or value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 class CreateTaskInput(BaseModel):
@@ -15,6 +21,11 @@ class CreateTaskInput(BaseModel):
     sort_order: float
     parent_id: UUID | None = None
     event_at: datetime | None = None
+
+    @field_validator("event_at")
+    @classmethod
+    def normalize_event_at(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime_for_db(value)
 
 
 class UpdateTaskInput(BaseModel):
@@ -31,6 +42,11 @@ class UpdateTaskInput(BaseModel):
     export_flag: bool | None = None
     update_last_done: bool = True
     tz_offset: int | None = None
+
+    @field_validator("event_at")
+    @classmethod
+    def normalize_event_at(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime_for_db(value)
 
 
 class UpsertTaskContentInput(BaseModel):
@@ -106,6 +122,11 @@ class BatchOperation(BaseModel):
     task_type: TaskType | None = None
     event_at: datetime | None = None
     descendants: list[UUID] | None = None
+
+    @field_validator("event_at")
+    @classmethod
+    def normalize_event_at(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime_for_db(value)
 
     @model_validator(mode="after")
     def validate_required_fields(self) -> "BatchOperation":

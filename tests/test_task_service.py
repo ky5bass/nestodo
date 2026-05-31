@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -261,6 +261,29 @@ async def test_batch_update_applies_operations_atomically(session: AsyncSession)
     assert updated.task_name == "renamed child"
     assert updated.parent_id is None
     assert updated.event_at == ROOT_EVENT_AT
+
+
+async def test_batch_update_accepts_timezone_aware_event_at(
+    session: AsyncSession,
+) -> None:
+    service = TaskService(session)
+    aware_event_at = datetime(2027, 5, 31, 9, 0, 0, tzinfo=UTC)
+
+    await service.batch_update(
+        [
+            BatchOperation(
+                type="create",
+                name="root from frontend",
+                sort_order=1.0,
+                task_type=TaskType.TODO,
+                event_at=aware_event_at,
+            ),
+        ]
+    )
+
+    tree = await service.get_tree()
+    assert tree[0].event_at == datetime(2027, 5, 31, 9, 0, 0)
+    assert tree[0].event_at.tzinfo is None
 
 
 async def test_batch_update_rolls_back_when_final_root_event_at_is_invalid(
