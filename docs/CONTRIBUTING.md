@@ -122,8 +122,8 @@ Kiro が行う処理:
 
 - Claude Code による spec と実装の整合性レビューが完了していることの確認
 - `requirements.md` と `design.md` にバージョン番号を付与（初回: v1.0、更新時: v1.0 → v1.1）
-- `docs/requirements-spec.md` の spec 一覧を更新
-- `tasks.md` の削除
+- `docs/spec-index.md` の spec 一覧を更新
+- `tasks.md` の削除（ `git rm` を使う）
 
 #### 8. Wiki 同期
 **担当: 自動（GitHub Actions）**
