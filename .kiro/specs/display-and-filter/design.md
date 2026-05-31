@@ -1,5 +1,9 @@
 # 設計ドキュメント: display-and-filter
 
+## Meta
+
+- **バージョン**: v1.0
+
 ## Overview
 
 タスクリストのツリー表示、詳細パネル遷移、グローバルフィルター（effective_at算出・表示条件・先祖包含）、日付境界を実現する設計。フロントエンドは`TaskListComponent`と`TaskListService`、バックエンドは`FilterService`と専用エンドポイントで構成する。
