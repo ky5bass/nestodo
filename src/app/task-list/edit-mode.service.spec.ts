@@ -84,6 +84,61 @@ describe('EditModeService', () => {
     expect(service.deletedTaskIds()).toEqual(new Set(['task-1', 'child', 'grandchild']));
   });
 
+  it('未保存タスクを削除するとcreate操作が除去されdelete操作は追加されない', () => {
+    service.applyOperation({
+      type: 'create',
+      tempId: 'tmp-parent',
+      name: 'draft',
+      parentId: null,
+      sortOrder: 1,
+      taskType: 'TODO',
+      eventAt: '2026-06-30T00:00:00Z'
+    });
+    service.applyOperation({
+      type: 'rename',
+      taskId: 'tmp-parent',
+      oldName: 'draft',
+      newName: 'renamed'
+    });
+
+    service.deleteTask(node({ id: 'tmp-parent', task_name: 'renamed' }));
+
+    expect(service.changeBuffer()).toEqual([]);
+    expect(service.undoStack()).toEqual([]);
+  });
+
+  it('未保存タスクの子孫も同時にバッファから除去される', () => {
+    service.applyOperation({
+      type: 'create',
+      tempId: 'tmp-parent',
+      name: 'parent',
+      parentId: null,
+      sortOrder: 1,
+      taskType: 'TODO',
+      eventAt: '2026-06-30T00:00:00Z'
+    });
+    service.applyOperation({
+      type: 'create',
+      tempId: 'tmp-child',
+      name: 'child',
+      parentId: 'tmp-parent',
+      sortOrder: 1,
+      taskType: 'TODO'
+    });
+    service.applyOperation({
+      type: 'move',
+      taskId: 'task-1',
+      oldParentId: null,
+      oldSortOrder: 1,
+      newParentId: 'tmp-parent',
+      newSortOrder: 2
+    });
+
+    service.deleteTask(node({ id: 'tmp-parent' }));
+
+    expect(service.changeBuffer()).toEqual([]);
+  });
+
   it('フィルター切替時にバッファを保持する', () => {
     service.renameTask(node(), 'renamed');
 
@@ -124,5 +179,65 @@ describe('EditModeService', () => {
 
     expect(service.isEditMode()).toBeFalse();
     expect(service.changeBuffer()).toEqual([]);
+  });
+
+  it('toBatchOperationsでtmpタスクをclient_idフィールドで送信する', () => {
+    service.applyOperation({
+      type: 'create',
+      tempId: 'tmp-parent',
+      name: 'parent',
+      parentId: null,
+      sortOrder: 1,
+      taskType: 'TODO',
+      eventAt: '2026-06-30T00:00:00Z'
+    });
+    service.applyOperation({
+      type: 'create',
+      tempId: 'tmp-child',
+      name: 'child',
+      parentId: 'tmp-parent',
+      sortOrder: 1,
+      taskType: 'TODO'
+    });
+    service.applyOperation({
+      type: 'move',
+      taskId: 'tmp-child',
+      oldParentId: 'tmp-parent',
+      oldSortOrder: 1,
+      newParentId: 'tmp-parent',
+      newSortOrder: 2
+    });
+
+    service.save().subscribe();
+
+    const request = http.expectOne('/api/tasks/batch');
+    expect(request.request.body).toEqual([
+      {
+        type: 'create',
+        client_id: 'tmp-parent',
+        name: 'parent',
+        new_parent_id: null,
+        sort_order: 1,
+        task_type: 'TODO',
+        event_at: '2026-06-30T00:00:00Z'
+      },
+      {
+        type: 'create',
+        client_id: 'tmp-child',
+        name: 'child',
+        new_parent_client_id: 'tmp-parent',
+        sort_order: 1,
+        task_type: 'TODO',
+        event_at: undefined
+      },
+      {
+        type: 'move',
+        client_id: 'tmp-child',
+        new_parent_client_id: 'tmp-parent',
+        sort_order: 2,
+        event_at: undefined
+      }
+    ]);
+    request.flush(null, { status: 204, statusText: 'No Content' });
   });
 });

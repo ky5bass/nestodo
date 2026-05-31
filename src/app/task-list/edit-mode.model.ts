@@ -35,8 +35,10 @@ export type EditOperation =
 export interface BatchOperation {
   type: 'rename' | 'create' | 'delete' | 'move';
   task_id?: string;
+  client_id?: string;
   name?: string;
   new_parent_id?: string | null;
+  new_parent_client_id?: string;
   sort_order?: number;
   task_type?: TaskType;
   event_at?: string;

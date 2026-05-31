@@ -339,6 +339,78 @@ async def test_batch_update_applies_operations_atomically(session: AsyncSession)
     assert updated.event_at == ROOT_EVENT_AT
 
 
+async def test_batch_update_with_client_id_reference(session: AsyncSession) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+
+    await service.batch_update(
+        [
+            BatchOperation(
+                type="create",
+                client_id="tmp-created",
+                name="created in batch",
+                sort_order=2.0,
+                task_type=TaskType.TODO,
+                event_at=ROOT_EVENT_AT,
+            ),
+            BatchOperation(
+                type="move",
+                client_id="tmp-created",
+                new_parent_id=root.id,
+                sort_order=1.0,
+            ),
+        ]
+    )
+
+    tree = await service.get_tree()
+    created = next(child for child in tree[0].children if child.task_name == "created in batch")
+    assert created.parent_id == root.id
+    assert created.sort_order == 1.0
+
+
+async def test_batch_update_rebalance_siblings(session: AsyncSession) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+    first = await service.create(
+        CreateTaskInput(
+            task_name="first",
+            task_type=TaskType.TODO,
+            sort_order=10.0,
+            parent_id=root.id,
+        )
+    )
+    second = await service.create(
+        CreateTaskInput(
+            task_name="second",
+            task_type=TaskType.TODO,
+            sort_order=20.0,
+            parent_id=root.id,
+        )
+    )
+
+    await service.batch_update(
+        [
+            BatchOperation(
+                type="move",
+                task_id=first.id,
+                new_parent_id=root.id,
+                sort_order=1.0,
+            ),
+            BatchOperation(
+                type="move",
+                task_id=second.id,
+                new_parent_id=root.id,
+                sort_order=2.0,
+            ),
+        ]
+    )
+
+    updated_first = await service.get_by_id(first.id)
+    updated_second = await service.get_by_id(second.id)
+    assert updated_first.sort_order == 1.0
+    assert updated_second.sort_order == 2.0
+
+
 async def test_batch_update_accepts_timezone_aware_event_at(
     session: AsyncSession,
 ) -> None:

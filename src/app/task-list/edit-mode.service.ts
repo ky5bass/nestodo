@@ -97,11 +97,23 @@ export class EditModeService {
   }
 
   deleteTask(task: TaskTreeNode): void {
+    if (task.id.startsWith('tmp-')) {
+      this.removeTempTask(task.id);
+      return;
+    }
     this.applyOperation({
       type: 'delete',
       taskId: task.id,
       descendants: this.collectDescendantIds(task)
     });
+  }
+
+  removeTempTask(tempId: string): void {
+    const removeIds = this.collectTempSubtreeIds(tempId);
+    this.changeBuffer.update((buffer) => this.removeTempReferences(buffer, removeIds));
+    this.undoStack.update((stack) => this.removeTempReferences(stack, removeIds));
+    this.redoStack.update((stack) => this.removeTempReferences(stack, removeIds));
+    this.error.set(null);
   }
 
   moveTask(tasks: TaskTreeNode[], drop: DropTarget, eventAt?: string): boolean {
@@ -290,30 +302,88 @@ export class EditModeService {
   }
 
   private toBatchOperations(): BatchOperation[] {
-    return this.changeBuffer().map((op) => {
+    const operations: BatchOperation[] = [];
+    for (const op of this.changeBuffer()) {
       if (op.type === 'rename') {
-        return { type: 'rename', task_id: op.taskId, name: op.newName };
+        operations.push({ type: 'rename', task_id: op.taskId, name: op.newName });
+        continue;
       }
       if (op.type === 'create') {
-        return {
+        operations.push({
           type: 'create',
+          client_id: op.tempId,
           name: op.name,
-          new_parent_id: op.parentId,
+          ...(op.parentId?.startsWith('tmp-')
+            ? { new_parent_client_id: op.parentId }
+            : { new_parent_id: op.parentId }),
           sort_order: op.sortOrder,
           task_type: op.taskType,
           event_at: op.eventAt
-        };
+        });
+        continue;
       }
       if (op.type === 'delete') {
-        return { type: 'delete', task_id: op.taskId, descendants: op.descendants };
+        operations.push({ type: 'delete', task_id: op.taskId, descendants: op.descendants });
+        continue;
       }
-      return {
+      const parentReference = op.newParentId?.startsWith('tmp-')
+        ? { new_parent_client_id: op.newParentId }
+        : { new_parent_id: op.newParentId };
+      for (const item of op.rebalanced ?? []) {
+        operations.push({
+          type: 'move' as const,
+          ...(item.id.startsWith('tmp-') ? { client_id: item.id } : { task_id: item.id }),
+          ...parentReference,
+          sort_order: item.sortOrder
+        });
+      }
+      operations.push({
         type: 'move',
-        task_id: op.taskId,
-        new_parent_id: op.newParentId,
+        ...(op.taskId.startsWith('tmp-') ? { client_id: op.taskId } : { task_id: op.taskId }),
+        ...parentReference,
         sort_order: op.newSortOrder,
         event_at: op.eventAt
-      };
+      });
+    }
+    return operations;
+  }
+
+  private collectTempSubtreeIds(tempId: string): Set<string> {
+    const parents = new Map<string, string | null>();
+    for (const op of this.changeBuffer()) {
+      if (op.type === 'create') {
+        parents.set(op.tempId, op.parentId);
+      } else if (op.type === 'move' && op.taskId.startsWith('tmp-')) {
+        parents.set(op.taskId, op.newParentId);
+      }
+    }
+
+    const removeIds = new Set([tempId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const [id, parentId] of parents) {
+        if (parentId !== null && removeIds.has(parentId) && !removeIds.has(id)) {
+          removeIds.add(id);
+          changed = true;
+        }
+      }
+    }
+    return removeIds;
+  }
+
+  private removeTempReferences(buffer: EditOperation[], removeIds: Set<string>): EditOperation[] {
+    return buffer.filter((op) => {
+      if (op.type === 'create') {
+        return !removeIds.has(op.tempId) && (op.parentId === null || !removeIds.has(op.parentId));
+      }
+      if (op.type === 'rename') {
+        return !removeIds.has(op.taskId);
+      }
+      if (op.type === 'move') {
+        return !removeIds.has(op.taskId) && (op.newParentId === null || !removeIds.has(op.newParentId));
+      }
+      return !removeIds.has(op.taskId) && op.descendants.every((id) => !removeIds.has(id));
     });
   }
 

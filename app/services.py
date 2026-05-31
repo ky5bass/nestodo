@@ -161,9 +161,10 @@ class TaskService:
             raise TransactionError("カスケード削除をロールバックしました") from exc
 
     async def batch_update(self, operations: list[BatchOperation]) -> None:
+        client_tasks: dict[str, Task] = {}
         try:
             for operation in operations:
-                await self._apply_batch_operation(operation)
+                await self._apply_batch_operation(operation, client_tasks)
             await self.session.flush()
             await self._validate_batch_final_state()
             await self.session.commit()
@@ -308,12 +309,43 @@ class TaskService:
     def _task_out(self, task: Task) -> TaskOut:
         return TaskOut.model_validate(task)
 
-    async def _apply_batch_operation(self, operation: BatchOperation) -> None:
-        if operation.type == "rename":
-            assert operation.task_id is not None
-            task = await self.repo.get_for_update(operation.task_id)
+    async def _resolve_batch_task(
+        self, operation: BatchOperation, client_tasks: dict[str, Task]
+    ) -> Task:
+        if operation.client_id is not None:
+            task = client_tasks.get(operation.client_id)
             if task is None:
-                raise NotFoundError("タスクが見つかりません", {"id": str(operation.task_id)})
+                raise NotFoundError("タスクが見つかりません", {"client_id": operation.client_id})
+            return task
+        assert operation.task_id is not None
+        task = await self.repo.get_for_update(operation.task_id)
+        if task is None:
+            raise NotFoundError("タスクが見つかりません", {"id": str(operation.task_id)})
+        return task
+
+    async def _resolve_batch_parent(
+        self, operation: BatchOperation, client_tasks: dict[str, Task]
+    ) -> Task | None:
+        if operation.new_parent_client_id is not None:
+            parent = client_tasks.get(operation.new_parent_client_id)
+            if parent is None:
+                raise NotFoundError(
+                    "親タスクが見つかりません",
+                    {"client_id": operation.new_parent_client_id},
+                )
+            return parent
+        if operation.new_parent_id is None:
+            return None
+        parent = await self.repo.get(operation.new_parent_id)
+        if parent is None:
+            raise NotFoundError("親タスクが見つかりません", {"id": str(operation.new_parent_id)})
+        return parent
+
+    async def _apply_batch_operation(
+        self, operation: BatchOperation, client_tasks: dict[str, Task]
+    ) -> None:
+        if operation.type == "rename":
+            task = await self._resolve_batch_task(operation, client_tasks)
             assert operation.name is not None
             task.task_name = operation.name
             return
@@ -322,12 +354,9 @@ class TaskService:
             assert operation.name is not None
             assert operation.task_type is not None
             assert operation.sort_order is not None
-            if operation.new_parent_id is not None:
-                parent = await self.repo.get(operation.new_parent_id)
-                if parent is None:
-                    raise NotFoundError("親タスクが見つかりません", {"id": str(operation.new_parent_id)})
+            parent = await self._resolve_batch_parent(operation, client_tasks)
             task = Task(
-                parent_id=operation.new_parent_id,
+                parent_id=parent.id if parent is not None else None,
                 task_name=operation.name,
                 task_type=operation.task_type,
                 sort_order=operation.sort_order,
@@ -343,32 +372,27 @@ class TaskService:
                 last_done_at=None,
             )
             await self.repo.create(task)
+            await self.session.flush()
+            if operation.client_id is not None:
+                client_tasks[operation.client_id] = task
             return
 
         if operation.type == "delete":
-            assert operation.task_id is not None
-            task = await self.repo.get(operation.task_id)
-            if task is None:
-                return
-            descendants = await self.repo.get_descendants(operation.task_id)
+            task = await self._resolve_batch_task(operation, client_tasks)
+            descendants = await self.repo.get_descendants(task.id)
             task_ids = [task.id, *[descendant.id for descendant in descendants]]
             await self.repo.delete_tasks(task_ids)
             return
 
-        assert operation.task_id is not None
-        task = await self.repo.get_for_update(operation.task_id)
-        if task is None:
-            raise NotFoundError("タスクが見つかりません", {"id": str(operation.task_id)})
-        if operation.new_parent_id is not None:
-            if operation.new_parent_id == task.id:
+        task = await self._resolve_batch_task(operation, client_tasks)
+        parent = await self._resolve_batch_parent(operation, client_tasks)
+        if parent is not None:
+            if parent.id == task.id:
                 raise ValidationAppError("自身を親タスクにはできません", {"field": "new_parent_id"})
-            parent = await self.repo.get(operation.new_parent_id)
-            if parent is None:
-                raise NotFoundError("親タスクが見つかりません", {"id": str(operation.new_parent_id)})
             descendants = await self.repo.get_descendants(task.id)
-            if operation.new_parent_id in {descendant.id for descendant in descendants}:
+            if parent.id in {descendant.id for descendant in descendants}:
                 raise ValidationAppError("子孫タスクを親タスクにはできません", {"field": "new_parent_id"})
-        task.parent_id = operation.new_parent_id
+        task.parent_id = parent.id if parent is not None else None
         assert operation.sort_order is not None
         task.sort_order = operation.sort_order
         if operation.event_at is not None:

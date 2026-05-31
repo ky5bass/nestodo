@@ -50,7 +50,7 @@ import { TaskRowComponent } from './task-row.component';
               [selectedTaskId]="service.selectedTask()?.id ?? null"
               [isEditMode]="editMode.isEditMode()"
               [draggedTaskId]="draggedTaskId"
-              (selected)="service.selectTask($event)"
+              (selected)="selectTask($event)"
               (rename)="editMode.renameTask($event.task, $event.name)"
               (deleteRequested)="deleteTask($event)"
               (dragStarted)="draggedTaskId = $event"
@@ -179,6 +179,13 @@ export class TaskListComponent implements OnInit {
       return;
     }
     this.editMode.deleteTask(task);
+  }
+
+  selectTask(taskId: string): void {
+    if (taskId.startsWith('tmp-')) {
+      return;
+    }
+    this.service.selectTask(taskId);
   }
 
   moveTask(drop: DropTarget): void {
