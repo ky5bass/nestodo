@@ -116,7 +116,6 @@ class TaskService:
             await self._ensure_depth_allowed(input.parent_id)
 
         status_before = task.status
-        progress_before = task.progress
         wants_complete = input.status == TaskStatus.complete if "status" in fields else False
         progress_completes = input.progress == 100 if "progress" in fields else False
 
@@ -131,21 +130,17 @@ class TaskService:
         completion_trigger = (
             (wants_complete and status_before != TaskStatus.complete)
             or progress_completes
-            or (progress_completes and progress_before != 100)
         )
         if completion_trigger:
             return await self.complete(task_id, confirmed=False, tz_offset=input.tz_offset)
 
         self._apply_update(task, input, fields)
-        if "progress" in fields and input.progress == 100:
-            task.status = TaskStatus.complete
 
         if self._should_update_last_done(input, fields):
             task.last_done_at = self._logical_today(input.tz_offset)
 
         try:
             await self.session.commit()
-            await self.session.refresh(task)
             await self.session.refresh(task, attribute_names=["children", "content"])
         except SQLAlchemyError as exc:
             await self.session.rollback()
@@ -202,10 +197,7 @@ class TaskService:
                 target.progress = 100
                 target.last_done_at = logical_today
             await self.session.commit()
-            await self.session.refresh(task)
             await self.session.refresh(task, attribute_names=["children", "content"])
-            for descendant in descendants:
-                await self.session.refresh(descendant)
         except SQLAlchemyError as exc:
             await self.session.rollback()
             raise TransactionError("一括完了をロールバックしました") from exc
@@ -224,7 +216,6 @@ class TaskService:
         task.detail_flag = self._derive_detail_flag(input.pre_info, input.notes, input.reflection)
         try:
             await self.session.commit()
-            await self.session.refresh(task)
             await self.session.refresh(task, attribute_names=["children", "content"])
         except SQLAlchemyError as exc:
             await self.session.rollback()
@@ -244,7 +235,6 @@ class TaskService:
             task.preview = ""
             task.detail_flag = False
             await self.session.commit()
-            await self.session.refresh(task)
             await self.session.refresh(task, attribute_names=["children", "content"])
         except SQLAlchemyError as exc:
             await self.session.rollback()

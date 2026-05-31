@@ -68,7 +68,7 @@ async def get_task(
     return await service.get_by_id(task_id, include_content=include_content)
 
 
-@router.put("/{task_id}", response_model=UpdateResult)
+@router.put("/{task_id}", response_model=UpdateResult | CompleteResult)
 async def update_task(
     task_id: UUID,
     input: UpdateTaskInput,

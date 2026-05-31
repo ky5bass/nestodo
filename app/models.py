@@ -30,6 +30,7 @@ class Priority(str, enum.Enum):
 
 class Task(Base):
     __tablename__ = "tasks"
+    __mapper_args__ = {"eager_defaults": True}
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     parent_id: Mapped[uuid.UUID | None] = mapped_column(
