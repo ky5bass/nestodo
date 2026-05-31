@@ -19,7 +19,7 @@
 | `display-and-filter` | v1.0 | 完了 | タスクリスト表示、ツリー構造、詳細パネル遷移、グローバルフィルター、Day_Boundary | Task list UI, FilterService, tree API, panel state | `task-management-core` | `task-detail-panel`, `batch-edit-mode`, `daily-export` |
 | `task-detail-panel` | v1.0 | 完了 | 右サイド詳細パネル、属性編集、作業時間入力、export_flag、Optimistic UI、last_done_at更新制御 | Detail panel UI, DetailSaveService, task contents editing | `task-management-core`, `display-and-filter` | `batch-completion-ui`, `pwa-offline`, `daily-export` |
 | `batch-completion-ui` | - | 未着手 | 親タスク完了時の一括完了確認モーダル、Completion_TriggerのOptimistic UI例外処理、子孫UI同期 | DetailSaveService extension, completion modal, task refetch | `task-management-core`, `task-detail-panel` | `display-and-filter`, `pwa-offline` |
-| `batch-edit-mode` | - | 未着手 | 一括編集モード、変更バッファ、保存/キャンセル、Undo/Redo、並び替え、フィルター解除 | EditModeService, batch update API, SortOrderCalculator, task list UI | `task-management-core`, `display-and-filter` | `task-detail-panel`, `pwa-offline` |
+| `batch-edit-mode` | v1.0 | 完了 | 一括編集モード、変更バッファ、保存/キャンセル、Undo/Redo、並び替え、フィルター解除 | EditModeService, batch update API, SortOrderCalculator, task list UI | `task-management-core`, `display-and-filter` | `task-detail-panel`, `pwa-offline` |
 | `daily-export` | - | 未着手 | 日報エクスポート、本日の実績、残タスク出力 | ExportService, daily export API, text formatting | `task-management-core`, `display-and-filter` | `task-detail-panel` |
 | `menu-button` | - | 未着手 | タスク一覧画面のメニューボタン、ナビゲーションパネル、将来の画面追加準備 | Header/menu UI, MenuService, routing | `display-and-filter` | `pwa-install` |
 | `pwa-install` | - | 未着手 | PWA基盤、Web App Manifest、Service Worker登録、App Shellキャッシュ、アイコン | Angular PWA, manifest, ngsw-config | なし | `pwa-offline`, `menu-button` |

@@ -2,6 +2,7 @@
 
 ## Meta
 
+- **バージョン**: v1.0
 - **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/4
 - **スコープ**: 一括編集モードの切り替え、モード内操作、保存/キャンセル、Undo/Redo、並び替え、フィルター解除による全タスク表示
 

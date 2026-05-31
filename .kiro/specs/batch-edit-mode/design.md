@@ -1,4 +1,7 @@
 # 設計ドキュメント: batch-edit-mode
+
+**バージョン**: v1.0
+
 ## Overview
 一括編集モードの状態管理・変更バッファ・Undo/Redo・sort_order算出・バッチ保存を実現する設計。フロントエンドは`EditModeService`と`SortOrderCalculator`、バックエンドは`PATCH /api/tasks/batch`で構成する。
 
