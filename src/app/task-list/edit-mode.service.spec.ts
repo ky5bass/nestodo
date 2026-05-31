@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { TaskTreeNode } from './task-list.model';
 import { EditModeService } from './edit-mode.service';
+import { EditOperation } from './edit-mode.model';
 
 function node(overrides: Partial<TaskTreeNode> = {}): TaskTreeNode {
   return {
@@ -90,6 +91,22 @@ describe('EditModeService', () => {
     service.setFilterDisabled(false);
 
     expect(service.changeBuffer().length).toBe(1);
+  });
+
+  it('追加したルートタスクは通常フィルター範囲内のevent_atを持つ', () => {
+    const before = new Date();
+
+    expect(service.createRootTask([], 'new task')).toBeTrue();
+
+    const operation = service.changeBuffer()[0] as Extract<EditOperation, { type: 'create' }>;
+    const eventAt = new Date(operation.eventAt ?? '');
+    const upper = new Date(before);
+    upper.setMonth(upper.getMonth() + 1);
+    upper.setMinutes(upper.getMinutes() + 1);
+
+    expect(operation.parentId).toBeNull();
+    expect(eventAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(eventAt.getTime()).toBeLessThanOrEqual(upper.getTime());
   });
 
   it('保存時にバッチAPIへ変換して成功後にモードを終了する', () => {

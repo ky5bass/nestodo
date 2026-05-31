@@ -323,7 +323,7 @@ export class EditModeService {
 
   private defaultRootEventAt(): string {
     const date = new Date();
-    date.setFullYear(date.getFullYear() + 1);
+    date.setMonth(date.getMonth() + 1);
     return date.toISOString();
   }
 
