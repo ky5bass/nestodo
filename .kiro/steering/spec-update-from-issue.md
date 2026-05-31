@@ -20,12 +20,17 @@ spec 名は依頼に含まれない前提とする。Issue の内容と `docs/sp
 ## 手順
 
 1. `#github-operations` steering を参照する
-2. `gh issue view <番号> --repo ky5bass/nestodo --comments --json body,comments` で Issue 本文とコメントを確認する
-3. `docs/spec-index.md` と `.kiro/specs/` 配下を確認し、Issue の内容に対応する既存 spec を特定する
-4. 特定した spec ディレクトリの `requirements.md` と `design.md` を読む
-5. Issue の目的・背景・要件を `requirements.md` に反映する
-6. 設計判断と理由を `design.md` に反映する
-7. 変更後に `requirements.md` と `design.md` がそれぞれ 150 行以内であることを確認する
+2. `git status --short` で未コミット変更がないことを確認する
+3. 未コミット変更がある場合は作業を止め、ユーザーに扱いを確認する
+4. `git switch main` で `main` ブランチに切り替える
+5. `git pull --ff-only` で `main` を最新化する
+6. `gh issue view <番号> --repo ky5bass/nestodo --comments --json body,comments` で Issue 本文とコメントを確認する
+7. `docs/spec-index.md` と `.kiro/specs/` 配下を確認し、Issue の内容に対応する既存 spec を特定する
+8. `git switch -c spec/issue-<番号>` で Issue 番号を含む新規ブランチを作成して切り替える
+9. 特定した spec ディレクトリの `requirements.md` と `design.md` を読む
+10. Issue の目的・背景・要件を `requirements.md` に反映する
+11. 設計判断と理由を `design.md` に反映する
+12. 変更後に `requirements.md` と `design.md` がそれぞれ 150 行以内であることを確認する
 
 ## 更新ルール
 
