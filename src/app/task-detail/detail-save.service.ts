@@ -66,7 +66,17 @@ export class DetailSaveService {
   ) {}
 
   setTask(task: TaskDetail): void {
-    this.tasksById.update((tasks) => ({ ...tasks, [task.id]: this.normalizeTask(task) }));
+    this.tasksById.update((tasks) => {
+      const existing = tasks[task.id];
+      return {
+        ...tasks,
+        [task.id]: this.normalizeTask({
+          ...task,
+          task_contents:
+            task.task_contents !== undefined ? task.task_contents : existing?.task_contents
+        })
+      };
+    });
   }
 
   selectTask(task: TaskDetail | null): void {

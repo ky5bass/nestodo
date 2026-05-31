@@ -26,6 +26,7 @@ import { TimeInputComponent } from './time-input.component';
             class="title-input"
             [readonly]="batchEditMode"
             [value]="detail.task_name"
+            (focus)="activeLastDoneField.set(null)"
             (change)="saveName(detail, $any($event.target).value)"
             aria-label="タスク名"
           />
@@ -56,7 +57,7 @@ import { TimeInputComponent } from './time-input.component';
             [attr.aria-label]="detail.export_flag ? '日報出力対象' : '日報出力対象外'"
             (click)="toggleExport(detail)"
           >
-            {{ detail.export_flag ? '◉' : '○' }}
+            <span aria-hidden="true">{{ detail.export_flag ? '👁' : '🙈' }}</span>
           </button>
         </div>
 
@@ -65,6 +66,7 @@ import { TimeInputComponent } from './time-input.component';
             種別
             <select
               [value]="detail.task_type"
+              (focus)="activeLastDoneField.set(null)"
               (change)="saveTaskType(detail, $any($event.target).value)"
             >
               <option value="TODO">TODO</option>
@@ -77,6 +79,7 @@ import { TimeInputComponent } from './time-input.component';
             <input
               type="datetime-local"
               [value]="toLocalInputValue(detail.event_at)"
+              (focus)="activeLastDoneField.set(null)"
               (change)="saveEventAt(detail, $any($event.target).value)"
             />
           </label>
@@ -85,6 +88,7 @@ import { TimeInputComponent } from './time-input.component';
             ステータス
             <select
               [value]="detail.status"
+              (focus)="activeLastDoneField.set(null)"
               (change)="changeStatus(detail, $any($event.target).value)"
             >
               <option value="incomplete">未完了</option>
@@ -114,6 +118,7 @@ import { TimeInputComponent } from './time-input.component';
             優先度
             <select
               [value]="detail.priority"
+              (focus)="activeLastDoneField.set(null)"
               (change)="savePriority(detail, $any($event.target).value)"
             >
               <option value="none">なし</option>
@@ -162,6 +167,7 @@ import { TimeInputComponent } from './time-input.component';
               <textarea
                 rows="5"
                 [value]="contentValue(detail, contentField.key)"
+                (focus)="activeLastDoneField.set(null)"
                 (change)="saveContent(detail, contentField.key, $any($event.target).value)"
               ></textarea>
             </label>

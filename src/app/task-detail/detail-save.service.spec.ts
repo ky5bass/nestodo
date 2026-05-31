@@ -89,6 +89,23 @@ describe('DetailSaveService', () => {
     expect(service.error()?.field).toBe('task_name');
   }));
 
+  it('フィールド保存レスポンスに task_contents が含まれない場合は既存内容を保持する', fakeAsync(() => {
+    service.saveField('task-1', 'task_name', '本文を消さない変更');
+    tick(300);
+
+    http.expectOne('/api/tasks/task-1').flush({
+      type: 'updated',
+      task: task({ task_name: '本文を消さない変更', task_contents: undefined })
+    });
+
+    expect(service.selectedTask()?.task_contents).toEqual({
+      task_id: 'task-1',
+      pre_info: null,
+      notes: null,
+      reflection: null
+    });
+  }));
+
   it('Property 1: Completion_Triggerはtz_offset付きでサーバー確認フローへ送信する', fakeAsync(() => {
     fc.assert(
       fc.property(
