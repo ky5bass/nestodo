@@ -76,10 +76,13 @@ Issue: <Issue URL>
 #### 4. tasks.md 作成
 **担当: Kiro**
 
-spec PR マージ後、Kiro に依頼する:
+spec PR マージ後、Kiro に以下のように依頼する:
 
 ```
-.kiro/specs/<spec名>/tasks.md を作成してください。
+以下の spec について tasks.md を作成してください。
+
+対象 spec:
+- `.kiro/specs/<spec名>/`
 ```
 
 tasks.md は Codex が実装を進めるためのタスクリスト。実装完了後は Kiro の spec 完了処理で削除される。
