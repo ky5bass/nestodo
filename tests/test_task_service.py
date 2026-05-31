@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +15,7 @@ from app.errors import (
 from app.models import TaskStatus, TaskType
 from app.repositories import TaskRepository
 from app.schemas import CreateTaskInput, TaskOut, UpdateTaskInput, UpsertTaskContentInput
+from app.schemas import BatchOperation
 from app.services import TaskService
 
 
@@ -229,3 +230,89 @@ async def test_delete_content_clears_summary_fields(session: AsyncSession) -> No
     assert result.task_contents is None
     assert result.preview == ""
     assert result.detail_flag is False
+
+
+async def test_batch_update_applies_operations_atomically(session: AsyncSession) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+    child = await service.create(
+        CreateTaskInput(
+            task_name="child",
+            task_type=TaskType.TODO,
+            sort_order=1.0,
+            parent_id=root.id,
+        )
+    )
+
+    await service.batch_update(
+        [
+            BatchOperation(type="rename", task_id=child.id, name="renamed child"),
+            BatchOperation(
+                type="move",
+                task_id=child.id,
+                new_parent_id=None,
+                sort_order=2.0,
+                event_at=ROOT_EVENT_AT,
+            ),
+        ]
+    )
+
+    updated = await service.get_by_id(child.id)
+    assert updated.task_name == "renamed child"
+    assert updated.parent_id is None
+    assert updated.event_at == ROOT_EVENT_AT
+
+
+async def test_batch_update_accepts_timezone_aware_event_at(
+    session: AsyncSession,
+) -> None:
+    service = TaskService(session)
+    aware_event_at = datetime(2027, 5, 31, 9, 0, 0, tzinfo=UTC)
+
+    await service.batch_update(
+        [
+            BatchOperation(
+                type="create",
+                name="root from frontend",
+                sort_order=1.0,
+                task_type=TaskType.TODO,
+                event_at=aware_event_at,
+            ),
+        ]
+    )
+
+    tree = await service.get_tree()
+    assert tree[0].event_at == datetime(2027, 5, 31, 9, 0, 0)
+    assert tree[0].event_at.tzinfo is None
+
+
+async def test_batch_update_rolls_back_when_final_root_event_at_is_invalid(
+    session: AsyncSession,
+) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+    child = await service.create(
+        CreateTaskInput(
+            task_name="child",
+            task_type=TaskType.TODO,
+            sort_order=1.0,
+            parent_id=root.id,
+        )
+    )
+
+    with pytest.raises(RootEventAtRequiredError):
+        await service.batch_update(
+            [
+                BatchOperation(type="rename", task_id=child.id, name="should rollback"),
+                BatchOperation(
+                    type="move",
+                    task_id=child.id,
+                    new_parent_id=None,
+                    sort_order=2.0,
+                ),
+            ]
+        )
+
+    updated = await service.get_by_id(child.id)
+    assert updated.task_name == "child"
+    assert updated.parent_id == root.id

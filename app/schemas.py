@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models import Priority, TaskStatus, TaskType
+
+
+def normalize_datetime_for_db(value: datetime | None) -> datetime | None:
+    if value is None or value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 class CreateTaskInput(BaseModel):
@@ -15,6 +21,11 @@ class CreateTaskInput(BaseModel):
     sort_order: float
     parent_id: UUID | None = None
     event_at: datetime | None = None
+
+    @field_validator("event_at")
+    @classmethod
+    def normalize_event_at(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime_for_db(value)
 
 
 class UpdateTaskInput(BaseModel):
@@ -31,6 +42,11 @@ class UpdateTaskInput(BaseModel):
     export_flag: bool | None = None
     update_last_done: bool = True
     tz_offset: int | None = None
+
+    @field_validator("event_at")
+    @classmethod
+    def normalize_event_at(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime_for_db(value)
 
 
 class UpsertTaskContentInput(BaseModel):
@@ -95,3 +111,37 @@ class CompleteResult(BaseModel):
     type: Literal["completed", "confirmation_required"]
     task: TaskTreeOut | None = None
     pending_children: list[PendingChild] | None = None
+
+
+class BatchOperation(BaseModel):
+    type: Literal["rename", "create", "delete", "move"]
+    task_id: UUID | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    new_parent_id: UUID | None = None
+    sort_order: float | None = None
+    task_type: TaskType | None = None
+    event_at: datetime | None = None
+    descendants: list[UUID] | None = None
+
+    @field_validator("event_at")
+    @classmethod
+    def normalize_event_at(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime_for_db(value)
+
+    @model_validator(mode="after")
+    def validate_required_fields(self) -> "BatchOperation":
+        fields = self.model_fields_set
+        if self.type in {"rename", "delete", "move"} and self.task_id is None:
+            raise ValueError("task_id is required")
+        if self.type == "rename" and self.name is None:
+            raise ValueError("name is required")
+        if self.type == "create" and (
+            self.name is None or self.sort_order is None or self.task_type is None
+        ):
+            raise ValueError("name, sort_order and task_type are required")
+        if self.type == "move":
+            if "new_parent_id" not in fields:
+                raise ValueError("new_parent_id is required")
+            if self.sort_order is None:
+                raise ValueError("sort_order is required")
+        return self

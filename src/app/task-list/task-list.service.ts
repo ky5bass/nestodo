@@ -14,10 +14,10 @@ export class TaskListService {
 
   constructor(private readonly http: HttpClient) {}
 
-  loadTasks(): void {
+  loadTasks(filtered = true): void {
     this.loading.set(true);
     const tzOffset = new Date().getTimezoneOffset();
-    this.http.get<TaskTreeNode[]>(`/api/tasks?filtered=true&tz_offset=${tzOffset}`).subscribe({
+    this.http.get<TaskTreeNode[]>(`/api/tasks?filtered=${filtered}&tz_offset=${tzOffset}`).subscribe({
       next: (tasks) => {
         this.tasks.set(tasks);
         this.loading.set(false);

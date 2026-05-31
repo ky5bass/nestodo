@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.schemas import (
+    BatchOperation,
     CompleteResult,
     CreateTaskInput,
     TaskOut,
@@ -47,6 +48,15 @@ async def get_task_tree(
     if filtered:
         return await filter_service.get_filtered_task_tree(datetime.now(timezone.utc), tz_offset)
     return await service.get_tree()
+
+
+@router.patch("/batch", status_code=status.HTTP_204_NO_CONTENT)
+async def batch_update_tasks(
+    operations: list[BatchOperation],
+    service: TaskService = Depends(get_task_service),
+) -> Response:
+    await service.batch_update(operations)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{task_id}", response_model=TaskWithChildrenOut)
