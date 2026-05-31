@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: docker/backend.Dockerfile
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/nestodo
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       CREATE_TABLES_ON_STARTUP: "1"
     ports:
       - "8000:8000"
@@ -35,15 +35,15 @@ services:
   db:
     image: postgres:18.4-alpine
     environment:
-      POSTGRES_DB: nestodo
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d nestodo"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 3s
       retries: 10

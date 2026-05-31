@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from typing import ClassVar, Self, cast
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.services as services_module
 from app.errors import (
     HierarchyLimitError,
     InvalidTimezoneOffsetError,
@@ -14,8 +16,13 @@ from app.errors import (
 )
 from app.models import TaskStatus, TaskType
 from app.repositories import TaskRepository
-from app.schemas import CreateTaskInput, TaskOut, UpdateTaskInput, UpsertTaskContentInput
-from app.schemas import BatchOperation
+from app.schemas import (
+    BatchOperation,
+    CreateTaskInput,
+    TaskOut,
+    UpdateTaskInput,
+    UpsertTaskContentInput,
+)
 from app.services import TaskService
 
 
@@ -127,6 +134,53 @@ async def test_root_event_at_invariant_on_update(session: AsyncSession) -> None:
         await service.update(root.id, UpdateTaskInput(event_at=None))
 
 
+async def test_promoting_child_to_root_requires_event_at_in_same_request(
+    session: AsyncSession,
+) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+    child = await service.create(
+        CreateTaskInput(
+            task_name="child",
+            task_type=TaskType.TODO,
+            sort_order=1.0,
+            parent_id=root.id,
+        )
+    )
+
+    with pytest.raises(RootEventAtRequiredError):
+        await service.update(child.id, UpdateTaskInput(parent_id=None))
+
+    unchanged = await service.get_by_id(child.id)
+    assert unchanged.parent_id == root.id
+    assert unchanged.event_at is None
+
+
+async def test_promoting_child_to_root_accepts_event_at_in_same_request(
+    session: AsyncSession,
+) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+    child = await service.create(
+        CreateTaskInput(
+            task_name="child",
+            task_type=TaskType.TODO,
+            sort_order=1.0,
+            parent_id=root.id,
+        )
+    )
+
+    result = await service.update(
+        child.id,
+        UpdateTaskInput(parent_id=None, event_at=datetime(2026, 6, 1, 9, 0, 0)),
+    )
+
+    assert result.type == "updated"
+    updated = await service.get_by_id(child.id)
+    assert updated.parent_id is None
+    assert updated.event_at == datetime(2026, 6, 1, 9, 0, 0)
+
+
 async def test_status_back_requires_progress_under_100(session: AsyncSession) -> None:
     service = TaskService(session)
     root = await create_root(service)
@@ -177,6 +231,28 @@ async def test_completion_requires_valid_tz_offset(session: AsyncSession) -> Non
 
     with pytest.raises(InvalidTimezoneOffsetError):
         await service.update(root.id, UpdateTaskInput(progress=100))
+
+
+async def test_logical_today_uses_5am_day_boundary(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = TaskService(session)
+
+    class FrozenDatetime(datetime):
+        current: ClassVar[datetime]
+
+        @classmethod
+        def now(cls, tz: object = None) -> Self:
+            _ = tz
+            return cast(Self, cls.current)
+
+    monkeypatch.setattr(services_module, "datetime", FrozenDatetime)
+
+    FrozenDatetime.current = datetime(2026, 5, 31, 19, 59, tzinfo=UTC)
+    assert service._logical_today(-540) == date(2026, 5, 31)
+
+    FrozenDatetime.current = datetime(2026, 5, 31, 20, 0, tzinfo=UTC)
+    assert service._logical_today(-540) == date(2026, 6, 1)
 
 
 async def test_delete_cascades_contents(session: AsyncSession) -> None:
