@@ -170,3 +170,8 @@ npm run lint              # ESLint
   - spec 全体が小規模な場合は 1 spec = 1 PR でよい
 - PR 作成の具体的な手順・本文要件・失敗時対応は `.codex/skills/github-pr-creator/SKILL.md` に従う
 - 実装 PR には spec ファイルの変更を含めない（spec PR と分ける）
+- PR 作成後の最終報告では、最後に Claude Code へ依頼するための次の文を出力する:
+  ```text
+  /spec-impl-checker コード PR #<PR番号> をレビューしてください。
+  ```
+  `<PR番号>` には実際に作成した PR 番号を入れる。PR URL から番号を読み取れる場合はその番号を使い、必要なら `gh pr view --json number` で確認する。`#XX` のようなプレースホルダーは出力しない。
