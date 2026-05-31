@@ -1,14 +1,29 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from os import getenv
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api import router
+from app.db import Base, engine
 from app.errors import AppError, app_error_handler
 
 
-app = FastAPI(title="nestodo API")
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    if getenv("CREATE_TABLES_ON_STARTUP") == "1":
+        import app.models  # noqa: F401
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(title="nestodo API", lifespan=lifespan)
 app.include_router(router)
 
 

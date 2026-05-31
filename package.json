@@ -4,7 +4,8 @@
   "scripts": {
     "build": "ng build",
     "test": "ng test --watch=false --browsers=ChromeHeadless",
-    "start": "ng serve"
+    "start": "ng serve",
+    "start:docker": "ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json"
   },
   "private": true,
   "dependencies": {
