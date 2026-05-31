@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import (
+    AppError,
     HierarchyLimitError,
     InvalidTimezoneOffsetError,
     NotFoundError,
@@ -19,6 +20,7 @@ from app.errors import (
 from app.models import Priority, Task, TaskStatus
 from app.repositories import TaskRepository
 from app.schemas import (
+    BatchOperation,
     CompleteResult,
     CreateTaskInput,
     PendingChild,
@@ -163,6 +165,20 @@ class TaskService:
             await self.session.rollback()
             raise TransactionError("カスケード削除をロールバックしました") from exc
 
+    async def batch_update(self, operations: list[BatchOperation]) -> None:
+        try:
+            for operation in operations:
+                await self._apply_batch_operation(operation)
+            await self.session.flush()
+            await self._validate_batch_final_state()
+            await self.session.commit()
+        except AppError:
+            await self.session.rollback()
+            raise
+        except SQLAlchemyError as exc:
+            await self.session.rollback()
+            raise TransactionError("一括更新をロールバックしました") from exc
+
     async def complete(self, task_id: UUID, confirmed: bool, tz_offset: int | None) -> CompleteResult:
         self._validate_tz_offset(tz_offset)
         task = await self.repo.get_for_update(task_id)
@@ -301,6 +317,97 @@ class TaskService:
 
     def _task_out(self, task: Task) -> TaskOut:
         return TaskOut.model_validate(task)
+
+    async def _apply_batch_operation(self, operation: BatchOperation) -> None:
+        if operation.type == "rename":
+            assert operation.task_id is not None
+            task = await self.repo.get_for_update(operation.task_id)
+            if task is None:
+                raise NotFoundError("タスクが見つかりません", {"id": str(operation.task_id)})
+            assert operation.name is not None
+            task.task_name = operation.name
+            return
+
+        if operation.type == "create":
+            assert operation.name is not None
+            assert operation.task_type is not None
+            assert operation.sort_order is not None
+            if operation.new_parent_id is not None:
+                parent = await self.repo.get(operation.new_parent_id)
+                if parent is None:
+                    raise NotFoundError("親タスクが見つかりません", {"id": str(operation.new_parent_id)})
+            task = Task(
+                parent_id=operation.new_parent_id,
+                task_name=operation.name,
+                task_type=operation.task_type,
+                sort_order=operation.sort_order,
+                event_at=operation.event_at,
+                status=TaskStatus.incomplete,
+                progress=None,
+                priority=Priority.none,
+                estimated_time=None,
+                actual_time=None,
+                preview=None,
+                detail_flag=False,
+                export_flag=True,
+                last_done_at=None,
+            )
+            await self.repo.create(task)
+            return
+
+        if operation.type == "delete":
+            assert operation.task_id is not None
+            task = await self.repo.get(operation.task_id)
+            if task is None:
+                return
+            descendants = await self.repo.get_descendants(operation.task_id)
+            task_ids = [task.id, *[descendant.id for descendant in descendants]]
+            await self.repo.delete_tasks(task_ids)
+            return
+
+        assert operation.task_id is not None
+        task = await self.repo.get_for_update(operation.task_id)
+        if task is None:
+            raise NotFoundError("タスクが見つかりません", {"id": str(operation.task_id)})
+        if operation.new_parent_id is not None:
+            if operation.new_parent_id == task.id:
+                raise ValidationAppError("自身を親タスクにはできません", {"field": "new_parent_id"})
+            parent = await self.repo.get(operation.new_parent_id)
+            if parent is None:
+                raise NotFoundError("親タスクが見つかりません", {"id": str(operation.new_parent_id)})
+            descendants = await self.repo.get_descendants(task.id)
+            if operation.new_parent_id in {descendant.id for descendant in descendants}:
+                raise ValidationAppError("子孫タスクを親タスクにはできません", {"field": "new_parent_id"})
+        task.parent_id = operation.new_parent_id
+        assert operation.sort_order is not None
+        task.sort_order = operation.sort_order
+        if operation.event_at is not None:
+            task.event_at = operation.event_at
+
+    async def _validate_batch_final_state(self) -> None:
+        tasks = await self.repo.list_all()
+        task_by_id = {task.id: task for task in tasks}
+        children_by_parent: dict[UUID | None, list[Task]] = {}
+        for task in tasks:
+            children_by_parent.setdefault(task.parent_id, []).append(task)
+            if task.parent_id is None and task.event_at is None:
+                raise RootEventAtRequiredError()
+            if task.parent_id is not None and task.parent_id not in task_by_id:
+                raise NotFoundError("親タスクが見つかりません", {"id": str(task.parent_id)})
+
+        def walk(task: Task, depth: int, path: set[UUID]) -> None:
+            if task.id in path:
+                raise ValidationAppError("タスク階層に循環があります", {"id": str(task.id)})
+            if depth > MAX_DEPTH:
+                raise HierarchyLimitError(
+                    "階層は最大10レベルまでです",
+                    {"task_id": str(task.id), "requested_depth": depth},
+                )
+            for child in children_by_parent.get(task.id, []):
+                walk(child, depth + 1, {*path, task.id})
+
+        for root in children_by_parent.get(None, []):
+            walk(root, 1, set())
 
     def _tree_out(self, task: Task, descendants: list[Task]) -> TaskTreeOut:
         return self._build_tree([task, *descendants], root_id=task.id)[0]

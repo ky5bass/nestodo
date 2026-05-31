@@ -15,6 +15,7 @@ from app.errors import (
 from app.models import TaskStatus, TaskType
 from app.repositories import TaskRepository
 from app.schemas import CreateTaskInput, TaskOut, UpdateTaskInput, UpsertTaskContentInput
+from app.schemas import BatchOperation
 from app.services import TaskService
 
 
@@ -229,3 +230,66 @@ async def test_delete_content_clears_summary_fields(session: AsyncSession) -> No
     assert result.task_contents is None
     assert result.preview == ""
     assert result.detail_flag is False
+
+
+async def test_batch_update_applies_operations_atomically(session: AsyncSession) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+    child = await service.create(
+        CreateTaskInput(
+            task_name="child",
+            task_type=TaskType.TODO,
+            sort_order=1.0,
+            parent_id=root.id,
+        )
+    )
+
+    await service.batch_update(
+        [
+            BatchOperation(type="rename", task_id=child.id, name="renamed child"),
+            BatchOperation(
+                type="move",
+                task_id=child.id,
+                new_parent_id=None,
+                sort_order=2.0,
+                event_at=ROOT_EVENT_AT,
+            ),
+        ]
+    )
+
+    updated = await service.get_by_id(child.id)
+    assert updated.task_name == "renamed child"
+    assert updated.parent_id is None
+    assert updated.event_at == ROOT_EVENT_AT
+
+
+async def test_batch_update_rolls_back_when_final_root_event_at_is_invalid(
+    session: AsyncSession,
+) -> None:
+    service = TaskService(session)
+    root = await create_root(service)
+    child = await service.create(
+        CreateTaskInput(
+            task_name="child",
+            task_type=TaskType.TODO,
+            sort_order=1.0,
+            parent_id=root.id,
+        )
+    )
+
+    with pytest.raises(RootEventAtRequiredError):
+        await service.batch_update(
+            [
+                BatchOperation(type="rename", task_id=child.id, name="should rollback"),
+                BatchOperation(
+                    type="move",
+                    task_id=child.id,
+                    new_parent_id=None,
+                    sort_order=2.0,
+                ),
+            ]
+        )
+
+    updated = await service.get_by_id(child.id)
+    assert updated.task_name == "child"
+    assert updated.parent_id == root.id
