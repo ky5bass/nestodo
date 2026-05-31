@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.main import app
-from app.models import TaskType
+from app.models import Priority, Task, TaskStatus, TaskType
 from app.schemas import CreateTaskInput
 from app.services import FilterService, TaskService
 
@@ -112,6 +112,96 @@ async def test_filtered_tree_includes_ancestors_and_sorts_siblings(
 
     assert [node.id for node in tree] == [root.id]
     assert [node.id for node in tree[0].children] == [earlier.id, later.id]
+
+
+async def test_filtered_tree_includes_completed_tasks_done_on_logical_today_only(
+    session: AsyncSession,
+) -> None:
+    task_today = Task(
+        task_name="task_today",
+        task_type=TaskType.TODO,
+        sort_order=1,
+        event_at=datetime(2026, 6, 1, 9, 0),
+        status=TaskStatus.complete,
+        progress=100,
+        priority=Priority.none,
+        estimated_time=None,
+        actual_time=None,
+        preview=None,
+        detail_flag=False,
+        export_flag=True,
+        last_done_at=date(2026, 6, 1),
+    )
+    task_yesterday = Task(
+        task_name="task_yesterday",
+        task_type=TaskType.TODO,
+        sort_order=2,
+        event_at=datetime(2026, 6, 1, 10, 0),
+        status=TaskStatus.complete,
+        progress=100,
+        priority=Priority.none,
+        estimated_time=None,
+        actual_time=None,
+        preview=None,
+        detail_flag=False,
+        export_flag=True,
+        last_done_at=date(2026, 5, 31),
+    )
+    session.add_all([task_today, task_yesterday])
+    await session.commit()
+
+    tree = await FilterService(session).get_filtered_task_tree(
+        datetime(2026, 5, 31, 20, 0, tzinfo=timezone.utc), -540
+    )
+
+    task_ids = {node.id for node in tree}
+    assert task_today.id in task_ids
+    assert task_yesterday.id not in task_ids
+
+
+async def test_filtered_tree_excludes_incomplete_root_without_effective_at(
+    session: AsyncSession,
+) -> None:
+    without_effective_at = Task(
+        task_name="without_effective_at",
+        task_type=TaskType.TODO,
+        sort_order=1,
+        event_at=None,
+        status=TaskStatus.incomplete,
+        progress=None,
+        priority=Priority.none,
+        estimated_time=None,
+        actual_time=None,
+        preview=None,
+        detail_flag=False,
+        export_flag=True,
+        last_done_at=None,
+    )
+    with_event_at = Task(
+        task_name="with_event_at",
+        task_type=TaskType.TODO,
+        sort_order=2,
+        event_at=datetime(2026, 6, 15, 9, 0),
+        status=TaskStatus.incomplete,
+        progress=None,
+        priority=Priority.none,
+        estimated_time=None,
+        actual_time=None,
+        preview=None,
+        detail_flag=False,
+        export_flag=True,
+        last_done_at=None,
+    )
+    session.add_all([without_effective_at, with_event_at])
+    await session.commit()
+
+    tree = await FilterService(session).get_filtered_task_tree(
+        datetime(2026, 5, 31, 20, 0, tzinfo=timezone.utc), -540
+    )
+
+    task_ids = {node.id for node in tree}
+    assert without_effective_at.id not in task_ids
+    assert with_event_at.id in task_ids
 
 
 async def test_filtered_api_returns_tree_and_validates_tz_offset(
