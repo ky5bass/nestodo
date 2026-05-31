@@ -1,0 +1,30 @@
+## 種別
+
+- [x] spec PR（仕様変更のみ・コードなし）
+- [ ] コード PR（実装）
+
+## 対応 spec / Issue
+
+- spec:
+  - `.kiro/specs/<!-- spec名 -->/`
+- Issue: #
+
+## 変更内容
+
+- <!-- spec ごとに requirements.md / design.md の変更概要を記載 -->
+
+## 確認事項
+
+- [ ] 変更範囲に不要なファイルが含まれていない
+- [ ] コード変更を含めていない
+- [ ] `requirements.md` のメタ情報に Issue URL を記載している
+- [ ] `design.md` に設計判断の理由を記載している
+
+## テスト方法（コード PR のみ）
+
+- なし（spec PR のため）
+
+## 検証
+
+- `.kiro/specs/<!-- spec名 -->/requirements.md`: <!-- 行数 --> 行
+- `.kiro/specs/<!-- spec名 -->/design.md`: <!-- 行数 --> 行

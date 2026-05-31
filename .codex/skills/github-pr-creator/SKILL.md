@@ -12,7 +12,7 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
 ## 前提条件
 
 - GitHub コマンドを実行する前に `.kiro/steering/github-operations.md` を読む。
-- PR 本文を作成する前に `.github/pull_request_template.md` を読む。
+- PR 本文を作成する前に `.github/PULL_REQUEST_TEMPLATE/code.md` を読む。
 - 対象 spec を `.kiro/specs/<spec名>/` から確認する。
 - 関連する検証コマンドを先に実行する。実行できないコマンドがある場合は、その理由を PR 本文に含める。
 - `git status --short --branch` を実行し、ユーザーの無関係な変更を PR に含めない。
@@ -43,9 +43,8 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
 
 5. 一時 Markdown ファイルに PR 本文を作成する:
    - タイトルは conventional commit 形式で、日本語の説明にする。
-   - 本文は `.github/pull_request_template.md` に従い、日本語で記述する。
+   - 本文は `.github/PULL_REQUEST_TEMPLATE/code.md` に従い、日本語で記述する。
    - 以下を含める:
-     - PR 種別: `コード PR（実装）` にチェックを入れる。
      - `spec: .kiro/specs/<spec名>/`。
      - `requirements.md` に Issue 番号や URL がある場合はそれを記載する。
      - `requirements.md` の受け入れ基準と対応するテスト。

@@ -52,10 +52,10 @@ Kiro に以下のように依頼する:
 
 詳細な更新手順は `.kiro/steering/spec-update-from-issue.md` にまとめている。
 
-#### 3. spec の PR
-**担当: 人間（レビュー）・Kiro（作成補助）・Claude Code（任意：品質チェック）**
+#### 3. spec PRのレビュー・マージ
+**担当: 人間（レビュー）・Claude Code（任意：品質チェック）**
 
-spec 変更のみを含む PR を作成してマージする。コードはこの PR に含めない。
+spec 変更のみを含む PR をレビューしてマージする。
 
 人間がレビューする前に Claude Code へ以下を依頼すると、ルール準拠や記述品質の確認を行ってくれる:
 
@@ -89,7 +89,7 @@ Codex に依頼する:
 Codex は `tasks.md` → `design.md` → `requirements.md` の順に参照して実装し、完了後に PR を作成する。
 
 #### 6. 実装 PR のレビュー・マージ
-**担当: 人間・Claude Code（任意：コード品質・spec 整合性チェック）**
+**担当: 人間（レビュー）・Claude Code（任意：コード品質・spec 整合性チェック）**
 
 コード変更を含む PR をレビューしてマージする。
 

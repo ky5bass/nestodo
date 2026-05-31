@@ -1,11 +1,11 @@
 ---
 inclusion: manual
-description: GitHub Issue を確認して既存 spec の requirements.md と design.md を更新する手順
+description: GitHub Issue を確認して既存 spec の requirements.md と design.md を更新し、spec PR を作成する手順
 ---
 
-# Issue から spec を更新する手順
+# Issue から spec を更新して PR を作成する手順
 
-この steering は、GitHub Issue の内容をもとに既存 spec の `requirements.md` と `design.md` を更新するときに使用する。
+この steering は、GitHub Issue の内容をもとに既存 spec の `requirements.md` と `design.md` を更新し、spec 変更のみを含む PR を作成するときに使用する。
 
 ## 依頼形式
 
@@ -31,6 +31,13 @@ spec 名は依頼に含まれない前提とする。Issue の内容と `docs/sp
 10. Issue の目的・背景・要件を `requirements.md` に反映する
 11. 設計判断と理由を `design.md` に反映する
 12. 変更後に `requirements.md` と `design.md` がそれぞれ 150 行以内であることを確認する
+13. `git diff --stat` と `git diff --name-only` で、変更が spec ファイルだけであることを確認する
+14. spec 以外の変更が含まれている場合は PR 作成前にユーザーへ確認する
+15. `git add` で変更した spec ファイルをステージする
+16. `git commit -m "docs: Issue #<番号> の spec を更新"` でコミットする
+17. `git push -u origin spec/issue-<番号>` でブランチを push する
+18. `.github/PULL_REQUEST_TEMPLATE/spec.md` をもとに PR 本文を作成する
+19. `gh pr create --repo ky5bass/nestodo --title "docs: Issue #<番号> の spec を更新" --body-file <PR本文ファイル>` で PR を作成する
 
 ## 更新ルール
 
@@ -40,3 +47,5 @@ spec 名は依頼に含まれない前提とする。Issue の内容と `docs/sp
 - 既存 spec の意図を保ち、Issue で求められていない仕様変更を追加しない
 - 120 行を超える場合は、更新前または更新後に spec 分割の必要性をユーザーに相談する
 - 150 行を超える更新は行わず、分割案を提示する
+- PR には spec 変更のみを含め、コード変更を含めない
+- PR 本文は `.github/PULL_REQUEST_TEMPLATE/spec.md` を使用し、対象 Issue、更新した spec 一覧、requirements/design の変更概要、行数確認結果を記載する
