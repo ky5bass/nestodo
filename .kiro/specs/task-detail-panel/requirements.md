@@ -1,5 +1,7 @@
 # Requirements Document
 
+**バージョン: v1.0**
+
 ## Meta
 
 - **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/3

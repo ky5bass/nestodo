@@ -17,7 +17,7 @@
 |---|---|---|---|---|---|---|
 | `task-management-core` | v1.0 | 完了 | タスクCRUD、階層構造、属性管理、ステータス/進捗連動、一括完了、最終実施日管理 | FastAPI, SQLAlchemy, task API, tasks/task_contents data model | なし | `display-and-filter`, `task-detail-panel`, `batch-edit-mode`, `batch-completion-ui`, `daily-export` |
 | `display-and-filter` | v1.0 | 完了 | タスクリスト表示、ツリー構造、詳細パネル遷移、グローバルフィルター、Day_Boundary | Task list UI, FilterService, tree API, panel state | `task-management-core` | `task-detail-panel`, `batch-edit-mode`, `daily-export` |
-| `task-detail-panel` | - | 未着手 | 右サイド詳細パネル、属性編集、作業時間入力、export_flag、Optimistic UI、last_done_at更新制御 | Detail panel UI, DetailSaveService, task contents editing | `task-management-core`, `display-and-filter` | `batch-completion-ui`, `pwa-offline`, `daily-export` |
+| `task-detail-panel` | v1.0 | 完了 | 右サイド詳細パネル、属性編集、作業時間入力、export_flag、Optimistic UI、last_done_at更新制御 | Detail panel UI, DetailSaveService, task contents editing | `task-management-core`, `display-and-filter` | `batch-completion-ui`, `pwa-offline`, `daily-export` |
 | `batch-completion-ui` | - | 未着手 | 親タスク完了時の一括完了確認モーダル、Completion_TriggerのOptimistic UI例外処理、子孫UI同期 | DetailSaveService extension, completion modal, task refetch | `task-management-core`, `task-detail-panel` | `display-and-filter`, `pwa-offline` |
 | `batch-edit-mode` | - | 未着手 | 一括編集モード、変更バッファ、保存/キャンセル、Undo/Redo、並び替え、フィルター解除 | EditModeService, batch update API, SortOrderCalculator, task list UI | `task-management-core`, `display-and-filter` | `task-detail-panel`, `pwa-offline` |
 | `daily-export` | - | 未着手 | 日報エクスポート、本日の実績、残タスク出力 | ExportService, daily export API, text formatting | `task-management-core`, `display-and-filter` | `task-detail-panel` |

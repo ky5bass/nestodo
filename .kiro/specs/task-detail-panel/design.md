@@ -1,5 +1,7 @@
 # 設計ドキュメント: task-detail-panel
 
+**バージョン: v1.0**
+
 ## Overview
 
 タスク詳細パネルの属性表示・インライン編集・Optimistic UI保存を実現する設計。パネル本体（`TaskDetailPanelComponent`）、作業時間入力（`TimeInputComponent`）、ステータス戻しモーダル（`RevertModalComponent`）、保存サービス（`DetailSaveService`）の4要素で構成する。
