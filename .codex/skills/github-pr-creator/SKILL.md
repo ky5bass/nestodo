@@ -11,7 +11,7 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
 
 ## 前提条件
 
-- GitHub コマンドを実行する前に `.kiro/steering/github-operations.md` を読む。
+- GitHub コマンドを実行する前に `.codex/skills/github-operations/SKILL.md` を読む。
 - PR 本文を作成する前に `.github/PULL_REQUEST_TEMPLATE/code.md` を読む。
 - 対象 spec を `.kiro/specs/<spec名>/` から確認する。
 - 関連する検証コマンドを先に実行する。実行できないコマンドがある場合は、その理由を PR 本文に含める。

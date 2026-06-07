@@ -5,31 +5,4 @@ description: GitHub Issue参照・PR操作のコマンドとルール
 
 # GitHub 操作ガイド
 
-## リポジトリ
-
-`ky5bass/nestodo`
-
-## Issue の参照
-
-```bash
-# 本文 + コメント取得（コメントが0件でない限り必ずコメントも取得すること）
-gh issue view <番号> --repo ky5bass/nestodo --comments --json body,comments
-
-# 一覧
-gh issue list --repo ky5bass/nestodo --json number,title,state
-```
-
-## PR 操作
-
-```bash
-# PR 作成
-gh pr create --repo ky5bass/nestodo --title "タイトル" --body "説明"
-
-# PR 一覧
-gh pr list --repo ky5bass/nestodo
-```
-
-## ルール
-
-- 書き込み系操作（コメント追加、Issue作成等）はユーザーから明示的に指示された場合のみ実行すること
-- コメントに仕様変更や追加要件が含まれている可能性があるため、Issue参照時はコメントを省略しないこと
+GitHub 操作が必要な場合は、共通ルールの正本である `.agents/github-operations.md` を必ず参照すること。

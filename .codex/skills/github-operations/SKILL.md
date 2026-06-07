@@ -1,6 +1,6 @@
 ---
 name: github-operations
-description: GitHub Issue参照・PR操作のコマンドとルール
+description: このプロジェクトで GitHub Issue 参照・PR 操作を行うときに使用する。GitHub 操作の共通ルールは .agents/github-operations.md を正本とする。
 ---
 
 # GitHub 操作ガイド
