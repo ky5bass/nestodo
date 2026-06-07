@@ -1,6 +1,6 @@
 ---
 name: github-operations
-description: GitHub Issue参照・PR操作のコマンドとルール
+description: GitHub 操作のコマンドとルール
 ---
 
 # GitHub 操作ガイド
