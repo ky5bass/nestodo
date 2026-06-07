@@ -2,7 +2,6 @@
 
 ## Meta
 
-- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/12
 - **スコープ**: 親タスク完了時の一括完了確認モーダルUI、Optimistic UI例外処理、一括完了成功/失敗時のUI更新、progress=100手動入力時の確認フロー、子孫UI同期
 
 ## Introduction

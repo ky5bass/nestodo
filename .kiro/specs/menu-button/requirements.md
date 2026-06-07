@@ -2,7 +2,6 @@
 
 ## Meta
 
-- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/7
 - **スコープ**: タスク一覧画面へのメニューボタン設置、将来のナビゲーション拡張への準備
 
 ## Introduction

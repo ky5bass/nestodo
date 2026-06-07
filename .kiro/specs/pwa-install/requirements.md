@@ -2,7 +2,6 @@
 
 ## Meta
 
-- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/13
 - **スコープ**: PWA基盤（インストール可能化、Service Worker登録、App Shellキャッシュ、アイコン）
 
 ## Introduction

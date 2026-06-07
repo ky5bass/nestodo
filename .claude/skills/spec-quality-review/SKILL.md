@@ -20,7 +20,6 @@ spec PR を人間がレビューする前に、対象 spec 一覧に含まれる
 - `requirements.md` と `design.md` がそれぞれ最大150行以内に収まっているか
 - 120行を超えるファイルがある場合、分割提案が必要か
 - `requirements.md` にユーザーストーリーと受け入れ基準が明確に書かれているか
-- `requirements.md` のメタ情報に、現在の spec 内容に対応した GitHub Issue URL があるか
 - `design.md` に、その spec 内で必要なインターフェース・コマンド・データ構造だけが自己完結して書かれているか
 - `design.md` に「なぜその設計にしたか」が読み取れる設計判断の理由があるか
 - 全体アーキテクチャや共通データモデルなど、`docs/requirements-spec.md` に置くべき内容が混ざっていないか

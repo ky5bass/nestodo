@@ -2,7 +2,6 @@
 
 ## Meta
 
-- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/14
 - **スコープ**: オフライン対応（オフライン通知、入力保持、自動リトライ）
 
 ## Introduction

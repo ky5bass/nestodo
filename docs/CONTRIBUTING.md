@@ -39,7 +39,7 @@ Issue 作成 → spec PR 作成 → spec PR レビュー・マージ → tasks.m
 - 機能の目的・背景
 - 対象の spec（既存 spec の変更か、新規 spec か）
 
-新規 spec の場合は先に Issue を作成し、Kiro に「この Issue に対応する spec を作成してください」と依頼する。どの spec に属するか判断できない場合も、まず Issue を作成して Kiro に相談する。
+既存 spec の更新の場合であれ、新規 spec の追加の場合であれ、どの spec に属するか判断できない場合であれ、いかなる場合も先に Issue を作成する。
 
 #### 2. spec 更新 PR 作成
 **担当: Kiro**
@@ -169,13 +169,13 @@ PR: <PR URL>
 
 ## GitHub Issues の使い方
 
+- Issue は spec に恒久的に紐づくものではなく、個々の変更単位に対して作成する
 - **変更の大小にかかわらず、つねに新しい Issue を作成する**。既存 Issue へのコメントで仕様変更を進めない
   - 理由: 変更の単位を明確にし、「いつ・なぜ仕様が変わったか」を Issue/PR で追跡できるようにするため
 - Issue には対象の spec を明記する（`feature.yml` のドロップダウンで選択）。複数 spec にまたがる場合は分割を検討する
-- 「どの spec に属するかわからない」場合は新しい Issue を作成して Kiro に相談する
+- 「どの spec に属するかわからない」場合は対象 spec を未定として（`feature.yml` のドロップダウンで `未定（後で判断）` を選択） Issue を作成する
 - sub-issue は使わない（管理が複雑になるため）
-- `requirements.md` のメタ情報セクションの Issue URL は、**その時点の spec 内容に対応した最新の Issue URL** を記載する。spec 更新のたびに書き換える
-- spec 初回定義の Issue（spec PR マージ後）は close する。以降の変更はつど新しい Issue を立てる
+- spec PR マージ後は Issue を close する。以降の変更はつど新しい Issue を立てる
 
 ---
 

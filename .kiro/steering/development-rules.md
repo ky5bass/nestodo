@@ -20,11 +20,6 @@
 - 各specの design.md には、そのspec内で必要なインターフェース・コマンド・データ構造のみを自己完結する形で記載する
 - 各specの requirements.md には、ユーザーストーリーと受け入れ基準を記載する
 
-## requirements.mdの運用ルール
-
-- requirements.md のメタ情報セクションに、対応するGitHub IssueのURLを必ず記載すること
-- 記載するURLは「その時点のspec内容に対応した最新のIssue」のURLとし、spec更新のたびに書き換えること（変更履歴はgit/PRで追跡するため、古いIssue URLは残さなくてよい）
-
 ## design.mdの運用ルール
 
 - design.md には設計判断の理由を明記すること

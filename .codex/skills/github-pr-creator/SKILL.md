@@ -46,7 +46,6 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
    - 本文は `.github/PULL_REQUEST_TEMPLATE/code.md` に従い、日本語で記述する。
    - 以下を含める:
      - `spec: .kiro/specs/<spec名>/`。
-     - `requirements.md` に Issue 番号や URL がある場合はそれを記載する。
      - `requirements.md` の受け入れ基準と対応するテスト。
      - 実装変更の要約。
      - 検証コマンドと結果。

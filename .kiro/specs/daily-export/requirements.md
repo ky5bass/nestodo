@@ -2,7 +2,6 @@
 
 ## Meta
 
-- **GitHub Issue**: https://github.com/ky5bass/nestodo/issues/5
 - **スコープ**: 日報エクスポート（本日の実績・残タスク出力）
 
 ## Introduction
