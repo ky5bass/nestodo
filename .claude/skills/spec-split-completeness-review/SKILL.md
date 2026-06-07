@@ -1,0 +1,53 @@
+---
+name: spec-split-completeness-review
+description: spec 分解 PR を人間がレビューする前に、元 spec と分解後 spec の requirements.md / design.md が必要十分に対応し、欠落や余剰がないか確認するときに使う。
+---
+
+# Spec 分解必要十分性レビュー
+
+spec 分解 PR を人間がレビューする前に、元 spec の `requirements.md` / `design.md` と分解後 spec の `requirements.md` / `design.md` が必要十分に対応しているか確認する。
+この skill は記述品質レビューではなく、分解前後の対応関係、欠落、余剰、意味変化の確認に集中する。
+
+## 読むファイル
+
+1. PR の base 側にある元 spec の `.kiro/specs/<元spec名>/requirements.md`
+2. PR の base 側にある元 spec の `.kiro/specs/<元spec名>/design.md`
+3. PR 側の分解後 spec 一覧に含まれる各 `.kiro/specs/<spec名>/requirements.md`
+4. PR 側の分解後 spec 一覧に含まれる各 `.kiro/specs/<spec名>/design.md`
+5. PR 本文の分解対応表
+6. `docs/spec-index.md`
+
+元 spec が PR 側で削除されている場合も、必ず base 側の元 spec を確認する。
+
+## 確認観点
+
+- 元 spec の `requirements.md` に含まれる Requirement、User Story、受け入れ基準が、分解後のいずれかの spec に含まれているか
+- 元 spec の `design.md` に含まれる設計判断、インターフェース、データ構造、コマンド、エラー処理、例外、制約、テスト方針が、分解後のいずれかの spec に含まれているか
+- 分解後 spec の `requirements.md` / `design.md` に、元 spec に存在しない新しい仕様・設計・制約・テスト方針が追加されていないか
+- 分解後 spec の各要素が、元 spec のどの要素に由来するか説明できるか
+- PR 本文の分解対応表が、元 spec から分解後 spec への対応と、分解後 spec から元 spec への由来をどちらも追える状態になっているか
+- 分解によって意味が変わった要素がないか
+- 分解によって配置先不明の要素が発生していないか
+- 分解後の複数 spec 間で、同じ責務が重複して矛盾していないか
+- `docs/spec-index.md` に分解後の spec、依存 spec、関連 spec、共通領域が反映されているか
+
+## 出力形式
+
+レビュー結果は、次の順で簡潔に出す。
+
+1. **必要十分性**: 満たす / 満たさない / 判断不能 のいずれかを最初に明記する
+2. **指摘事項**: 重大度順に、ファイルパスと該当箇所を添えて書く
+3. **確認できた対応**: 元 spec の主要要素がどの spec に移動されたか、分解後 spec の主要要素が元 spec のどこに由来するかを要約する
+4. **未確認範囲**: base 側の元 spec を確認できないなど、必要十分性を判断できない理由があれば書く
+5. **Kiro への依頼プロンプト**: 修正が必要な場合、Kiro にそのまま渡せるプロンプトをコードブロックで書く
+
+問題がない場合は、必要十分性を満たすと明記し、残るリスクや未確認範囲だけを書く。
+修正が不要な場合、**Kiro への依頼プロンプト** は「なし」と書く。
+
+Kiro への依頼プロンプトには、次を含める。
+
+- 対象 spec 名
+- 欠落、余剰、意味変化、由来不明のいずれかに該当する要素
+- 修正対象ファイル
+- 再配置または修正してほしい内容
+- 完了条件

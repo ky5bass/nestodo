@@ -29,11 +29,12 @@ project-root/
 │   │   ├── review-codex-output.md   # Codex の出力をレビュー
 │   │   └── update-steering.md       # Kiro steering の更新提案
 │   └── skills/            # 再利用可能なスキル
-│       ├── spec-reader/SKILL.md         # Kiro spec の読み方ガイド
-│       ├── spec-quality-review/SKILL.md # spec PR 前の品質レビュー観点
-│       ├── spec-impl-checker/SKILL.md   # 整合性確認の観点
-│       ├── config-improver/SKILL.md     # 設定ファイル改善の方針
-│       └── project-structure/SKILL.md   # このファイル
+│       ├── spec-reader/SKILL.md                    # Kiro spec の読み方ガイド
+│       ├── spec-quality-review/SKILL.md            # spec PR 前の品質レビュー観点
+│       ├── spec-split-completeness-review/SKILL.md # spec 分解 PR の必要十分性レビュー観点
+│       ├── spec-impl-checker/SKILL.md              # 整合性確認の観点
+│       ├── config-improver/SKILL.md                # 設定ファイル改善の方針
+│       └── project-structure/SKILL.md              # このファイル
 │
 ├── docs/                  # 人間が書くドキュメント
 │   ├── CONTRIBUTING.md    # 開発フロー（ステップ詳細）
