@@ -55,43 +55,29 @@ spec 名が指定されていない場合は、`.kiro/specs/` 配下の候補を
 - 局所的な実装判断は、既存コードのパターンと spec の意図に合わせて進め、最終報告に判断内容を記載する
 - 仕様変更が必要と判断した場合は実装せず、その旨をユーザーに報告する
 
-## Python 実行環境
+## Docker 実行環境
 
-- Python / FastAPI 関連のコマンドは、プロジェクト直下の `.venv` を優先して使用すること
-- `python` は `.venv/bin/python`、`pip` は `.venv/bin/python -m pip` を使用すること
-- `.venv` が存在しない場合は、`.python-version` の Python で `python -m venv .venv` を実行し、`.venv/bin/python -m pip install -e '.[test]'` で依存関係をインストールすること
-- グローバル環境や pyenv のベース環境へパッケージをインストールしないこと
-
-## Node.js 実行環境
-
-- Node.js / Angular 関連のコマンドは、プロジェクトローカルの `node_modules` と package script を優先して使用すること
-- 依存関係のインストールは `npm ci` または `npm install` でプロジェクト直下に対して行い、`npm install -g` は使用しないこと
-- CLI は `npm run <script>`、または必要に応じて `npm exec -- <command>` / `npx --no-install <command>` でローカル依存のものを実行すること
-- グローバル環境、システム Node.js、ユーザー領域の npm global prefix へパッケージをインストールしないこと
+- ビルド、テスト、リント、型チェックは Docker Compose のテスト専用サービス内で実行すること
+- ホスト側の `.venv`、`node_modules`、Python、Node.js を正式な検証に使用しないこと
+- 実行前に `docker compose config` で開発・テスト構成を検証すること
+- テスト用サービスには `profiles: ["test"]` を付け、通常の `docker compose up` では起動させないこと
+- テスト用コンテナは `docker compose --profile test run --rm` で一時起動し、終了後に残さないこと
+- 本番構成の検証には `docker compose -f compose.prod.yml config` を使用し、本番起動には開発・テスト用の `compose.yml` を使用しないこと
+- 既存の開発用コンテナ、データベース、永続ボリュームをテストのために削除・初期化しないこと
+- Docker を利用できない場合はホスト実行へ切り替えず、理由と未検証範囲を最終報告に明記すること
 
 ---
 
 ## 検証コマンド（コミット前に必ず実行）
 
-実際の package script、Docker Compose サービス名、実行ディレクトリを先に確認し、プロジェクトで定義されているコマンドを優先すること。以下はコマンドが未整備の場合の標準候補。
-
-### フロントエンド（Angular）
-
 ```bash
-npm run build             # 型チェック兼ビルド確認
-npm test -- --watch=false # ユニットテスト
-npm run lint              # ESLint
+docker compose config
+docker compose -f compose.prod.yml config
+docker compose --profile test run --rm backend-test
+docker compose --profile test run --rm frontend-test
 ```
 
-### バックエンド（Python / FastAPI）
-
-```bash
-.venv/bin/python -m pytest      # ユニットテスト
-.venv/bin/python -m ruff check . # リント
-.venv/bin/python -m mypy .       # 型チェック
-```
-
-> 実際のコマンドが判明した場合、または変更された場合は `.codex/codex-guidelines.md` ではなく、このファイルを更新すること。検証を実行できない場合は、理由と未検証の範囲を最終報告に明記すること。
+変更範囲にかかわらず、コミット前またはチェックポイント到達時には上記の全検証を実行すること。失敗した場合はコミットせず原因を調査すること。検証を実行できない場合は、理由と未検証の範囲を最終報告に明記すること。
 
 ---
 

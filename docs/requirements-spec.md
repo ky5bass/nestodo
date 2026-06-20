@@ -9,7 +9,7 @@
 | ORM | SQLAlchemy | async対応 (SQLAlchemy 2.0+) |
 | データベース | PostgreSQL | |
 | 認証 | JWT | アクセストークン + リフレッシュトークン |
-| コンテナ | Docker / Docker Compose | 開発・デプロイ共通 |
+| コンテナ | Docker / Docker Compose | 開発・テスト・本番の構成を分離 |
 
 ## アーキテクチャ概要
 
@@ -63,3 +63,5 @@ PostgreSQL ENUM: `task_type_enum`(`'TODO'|'SCHEDULE'`)、`task_status_enum`(`'in
 
 - Docker Composeで全サービスを起動
 - ホットリロード対応（Angular: ng serve / FastAPI: uvicorn --reload）
+- テスト専用サービスは `test` profile で一時起動し、通常起動には含めない
+- 本番デプロイは `compose.prod.yml` と本番用イメージを使用する

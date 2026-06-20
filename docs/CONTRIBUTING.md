@@ -7,19 +7,28 @@
 - **定型作業は hook で自動化**: Kiro の hook を活用して繰り返し作業を排除する
 - **spec は簡潔に保つ**: 各ファイルは 100〜150 行以内。肥大化したら分割する
 
-## Python 開発環境
+## Docker 開発・検証環境
 
-- Python は `.python-version` に従い、プロジェクト直下の `.venv` を使用する
-- Python コマンドは `.venv/bin/python`、pip は `.venv/bin/python -m pip` を使う
-- `.venv` がない場合は `python -m venv .venv` の後、`.venv/bin/python -m pip install -e '.[test]'` で依存関係を入れる
-- グローバル環境や pyenv のベース環境へ依存関係をインストールしない
+- 開発環境は `compose.yml` を使用し、`docker compose up` で起動する
+- 正式なビルド、テスト、リント、型チェックは Docker Compose のテスト専用サービス内で実行する
+- テスト専用サービスには `test` profile を付け、通常の開発環境や本番環境では起動しない
+- テストは次のコマンドで一時コンテナとして実行する
 
-## Node.js 開発環境
+```bash
+docker compose config
+docker compose --profile test run --rm backend-test
+docker compose --profile test run --rm frontend-test
+```
 
-- Node.js の依存関係はプロジェクト直下の `node_modules` に入れる
-- 依存関係のインストールは `npm ci` または `npm install` を使い、`npm install -g` は使わない
-- CLI は `npm run <script>`、または `npm exec -- <command>` / `npx --no-install <command>` でローカル依存のものを実行する
-- システムやユーザー領域の npm global prefix へ依存関係をインストールしない
+- 本番環境は `compose.prod.yml` のみを使用し、次のコマンドで構成確認・起動する
+
+```bash
+docker compose -f compose.prod.yml config
+docker compose -f compose.prod.yml up -d --build
+```
+
+- ホスト側の `.venv` や `node_modules` はエディター補助などに使用してよいが、正式な検証結果として扱わない
+- テスト実行のために開発・本番のデータベースや永続ボリュームを削除・初期化しない
 
 ---
 

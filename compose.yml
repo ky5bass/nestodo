@@ -15,6 +15,18 @@ services:
       db:
         condition: service_healthy
 
+  backend-test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: docker/backend-test.Dockerfile
+    environment:
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+    command:
+      - sh
+      - -c
+      - python -m pytest && python -m ruff check . && python -m mypy app tests
+
   frontend:
     build:
       context: .
@@ -31,6 +43,13 @@ services:
       - ./proxy.conf.json:/app/proxy.conf.json:ro
     depends_on:
       - backend
+
+  frontend-test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: docker/frontend-test.Dockerfile
+    command: npm run verify:docker
 
   db:
     image: postgres:18.4-alpine
