@@ -14,6 +14,7 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
 - GitHub コマンドを実行する前に `.codex/skills/github-operations/SKILL.md` を読む。
 - PR 本文を作成する前に `.github/PULL_REQUEST_TEMPLATE/code.md` を読む。
 - 対象 spec を `.kiro/specs/<spec名>/` から確認する。
+- 対応する Issue 番号を確認する。Issue を一意に特定できない場合は、PR 作成前にユーザーへ確認する。
 - 関連する検証コマンドを先に実行する。実行できないコマンドがある場合は、その理由を PR 本文に含める。
 - `git status --short --branch` を実行し、ユーザーの無関係な変更を PR に含めない。
 
@@ -46,6 +47,7 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
    - 本文は `.github/PULL_REQUEST_TEMPLATE/code.md` に従い、日本語で記述する。
    - 以下を含める:
      - `spec: .kiro/specs/<spec名>/`。
+     - 対応する `Issue: #<番号>`。Kiro の spec 完了処理でクローズするため、`Closes`、`Fixes`、`Resolves` などの自動クローズキーワードは使用しない。
      - `requirements.md` の受け入れ基準と対応するテスト。
      - 実装変更の要約。
      - 検証コマンドと結果。

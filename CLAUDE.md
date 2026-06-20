@@ -61,7 +61,7 @@
 ### やらないこと
 - Kiro の役割である **要件定義・設計の主導**（提案はしてよい）
 - Codex の役割である **機能実装の主担当**（修正・補完はしてよい）
-- Kiro の役割である **spec 完了処理**（バージョン付与・一覧更新・`tasks.md` 削除）
+- Kiro の役割である **spec 完了処理**（実装 PR のマージ確認、バージョン付与・一覧更新・`tasks.md` 削除・Issue クローズ）
 
 ---
 
@@ -93,7 +93,7 @@ Spec と実装で情報が食い違う場合の優先順位:
 
 spec PR の事前品質チェックは `/spec-quality-review` スキルを参照。
 実装 PR の確認観点の詳細は `/spec-impl-checker` スキルを参照。
-Claude Code が担うのはステップ3（spec の記述品質）とステップ6（コード品質・spec 整合性）。Kiro はステップ7で spec 完了処理を行う。詳細は `docs/CONTRIBUTING.md` を参照。
+Claude Code が担うのはステップ4（spec の記述品質）とステップ7（コード品質・spec 整合性）。Kiro はステップ8で spec 完了処理と Issue クローズを行う。詳細は `docs/CONTRIBUTING.md` を参照。
 
 ---
 
