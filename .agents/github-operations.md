@@ -1,9 +1,5 @@
 # GitHub コマンドリファレンス
 
-## リポジトリ
-
-`ky5bass/nestodo`
-
 ## Issue の作成
 
 ```bash
