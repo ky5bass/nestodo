@@ -4,6 +4,12 @@
 
 `ky5bass/nestodo`
 
+## Issue の作成
+
+```bash
+gh issue create --repo ky5bass/nestodo --title "タイトル" --body "説明"
+```
+
 ## Issue の参照
 
 ```bash
@@ -12,6 +18,18 @@ gh issue view <番号> --repo ky5bass/nestodo --comments --json body,comments
 
 # 一覧
 gh issue list --repo ky5bass/nestodo --json number,title,state
+```
+
+## Issue へのコメント
+
+```bash
+gh issue comment <番号> --repo ky5bass/nestodo --body "コメント本文"
+```
+
+## Issue の close
+
+```bash
+gh issue close <番号> --repo ky5bass/nestodo
 ```
 
 ## PR 操作
