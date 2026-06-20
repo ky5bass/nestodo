@@ -13,10 +13,12 @@ gh issue create --repo ky5bass/nestodo --title "タイトル" --body "説明"
 ## Issue の参照
 
 ```bash
-# 本文 + コメント取得（コメントが0件でない限り必ずコメントも取得すること）
 gh issue view <番号> --repo ky5bass/nestodo --comments --json body,comments
+```
 
-# 一覧
+## Issue の一覧取得
+
+```bash
 gh issue list --repo ky5bass/nestodo --json number,title,state
 ```
 
@@ -26,23 +28,38 @@ gh issue list --repo ky5bass/nestodo --json number,title,state
 gh issue comment <番号> --repo ky5bass/nestodo --body "コメント本文"
 ```
 
-## Issue の close
+## Issue のクローズ
 
 ```bash
 gh issue close <番号> --repo ky5bass/nestodo
 ```
 
-## PR 操作
+## PR の作成
 
 ```bash
-# PR 作成
 gh pr create --repo ky5bass/nestodo --title "タイトル" --body "説明"
+```
 
-# PR 一覧
+## PR の一覧取得
+
+```bash
 gh pr list --repo ky5bass/nestodo
 ```
 
-## ルール
+## PR へのコメント投稿
 
-- 書き込み系操作（コメント追加、Issue作成等）はユーザーから明示的に指示された場合のみ実行すること
-- コメントに仕様変更や追加要件が含まれている可能性があるため、Issue参照時はコメントを省略しないこと
+```bash
+gh pr comment <番号> --repo ky5bass/nestodo --body-file <本文ファイル>
+```
+
+## PR の head commit SHA 取得
+
+```bash
+gh pr view <番号> --repo ky5bass/nestodo --json headRefOid --jq .headRefOid
+```
+
+## PR の既存コメント取得
+
+```bash
+gh api repos/ky5bass/nestodo/issues/<番号>/comments --paginate --jq '.[].body'
+```
