@@ -50,7 +50,7 @@
 ### 一括編集・一括保存
 
 - 基準 spec: `batch-edit-mode`
-- 依存 spec: `task-management-core`, `display-and-filter`
+- 依存 spec: `task-crud`, `display-and-filter`
 - 注意: 一括編集保存は `pwa-offline` の自動リトライ対象外。オフライン時は `batch-edit-mode` 側の既存エラーハンドリングに従う。
 
 ### 一括完了

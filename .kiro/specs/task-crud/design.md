@@ -100,7 +100,7 @@ PostgreSQL ENUM: task_type_enum(`'TODO'|'SCHEDULE'`)、task_status_enum(`'incomp
 
 ### Property 5: Root_Task event_at不変条件の全経路保証
 **Validates: Requirements 1.2, 3.5, 3.6, 3.7**
-*For any* create/update/move操作において、結果がRoot_Task（parent_id=null）となるタスクのevent_atがnullなら拒否。降格時はevent_at保持。
+*For any* create/update/move操作において、結果がRoot_Task（parent_id=null）となるタスクのevent_atがnullなら拒否。降格時はevent_at保持。batch（一括編集）経路での同不変条件は`batch-edit-mode` spec（Property 10）が担保する。
 
 ## Error Handling
 | エラー種別 | 条件 | レスポンス |
@@ -114,6 +114,6 @@ PostgreSQL ENUM: task_type_enum(`'TODO'|'SCHEDULE'`)、task_status_enum(`'incomp
 統一フォーマット `{ error: { code, message, details? } }` で返却。トランザクション失敗時は必ずロールバック。
 
 ## Testing Strategy
-- **プロパティテスト**: hypothesisを使用し、上記5プロパティを各100回以上のランダム入力で検証。Property 5はcreate/update(event_at=null)/update(parent_id=null)の全経路でRoot_Task event_at不変条件を検証。タグ: `Feature: task-crud, Property N: {text}`
+- **プロパティテスト**: hypothesisを使用し、上記5プロパティを各100回以上のランダム入力で検証。Property 5はcreate/update(event_at=null)/update(parent_id=null)の経路でRoot_Task event_at不変条件を検証。batch move経路は`batch-edit-mode` spec側（Property 10）で検証する。タグ: `Feature: task-crud, Property N: {text}`
 - **ユニットテスト**: バリデーション境界値、デフォルト値、not-found、階層制限（深さ10/11）。pytest使用
 - **統合テスト**: トランザクションロールバック、カスケード削除の原子性、DB制約整合性。testcontainersでPostgreSQLコンテナを使用
