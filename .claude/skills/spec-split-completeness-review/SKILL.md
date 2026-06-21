@@ -21,6 +21,7 @@ spec 分解 PR を人間がレビューする前に、元 spec の `requirements
 4. PR 側の分解後 spec 一覧に含まれる各 `.kiro/specs/<spec名>/design.md`
 5. PR 本文の分解対応表
 6. `docs/spec-index.md`
+7. 元 spec が削除・改名されている場合は、`grep -rn "<元spec名>" . --exclude-dir=.git` でリポジトリ全体を検索し、旧 spec 名への残存参照を持つ全ファイルを洗い出す
 
 元 spec が PR 側で削除されている場合も、必ず base 側の元 spec を確認する。
 
@@ -35,6 +36,7 @@ spec 分解 PR を人間がレビューする前に、元 spec の `requirements
 - 分解によって配置先不明の要素が発生していないか
 - 分解後の複数 spec 間で、同じ責務が重複して矛盾していないか
 - `docs/spec-index.md` に分解後の spec、依存 spec、関連 spec、共通領域が反映されているか
+- 削除・改名した元 spec 名への残存参照（テンプレートの選択肢を含む）がないか。残存すれば削除済み spec への dangling 参照であり、重大度「高」・余剰として必要十分性を「満たさない」と判定する（マージ阻害）。意図的に残す参照は、PR 本文に理由が明記されユーザーが承認した場合に限り許容する
 
 ## 出力形式
 
