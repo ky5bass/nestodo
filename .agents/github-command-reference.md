@@ -3,7 +3,7 @@
 ## Issue の作成
 
 ```bash
-gh issue create --repo ky5bass/nestodo --title "タイトル" --body "説明"
+gh issue create --repo ky5bass/nestodo --title "タイトル" --body-file <本文ファイル>
 ```
 
 ## Issue の参照
@@ -21,7 +21,7 @@ gh issue list --repo ky5bass/nestodo --json number,title,state
 ## Issue へのコメント
 
 ```bash
-gh issue comment <番号> --repo ky5bass/nestodo --body "コメント本文"
+gh issue comment <番号> --repo ky5bass/nestodo --body-file <本文ファイル>
 ```
 
 ## Issue のクローズ
@@ -33,7 +33,7 @@ gh issue close <番号> --repo ky5bass/nestodo
 ## PR の作成
 
 ```bash
-gh pr create --repo ky5bass/nestodo --title "タイトル" --body "説明"
+gh pr create --repo ky5bass/nestodo --title "タイトル" --body-file <本文ファイル>
 ```
 
 ## PR の一覧取得
