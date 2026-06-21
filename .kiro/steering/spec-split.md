@@ -1,6 +1,6 @@
 ---
 inclusion: manual
-description: 120行を超えた既存 spec の要件・設計を再配置し、spec 分解 PR を作成する手順
+description: 120行を超えた既存 spec の要件・設計を再配置して spec 分解 PR を作成する、または同じ手順で作成した spec 分解 PR のレビュー指摘へ対応する手順
 ---
 
 # spec 分解手順
@@ -15,9 +15,21 @@ description: 120行を超えた既存 spec の要件・設計を再配置し、s
 #spec-split <spec名> を分解してください。
 ```
 
+既存の spec 分解 PR に投稿されたレビュー指摘へ対応する場合は、同じ steering を再度呼び出す:
+
+```text
+#spec-split spec 分解 PR #XX のレビュー指摘に対応してください。
+```
+
 `<spec名>` は `.kiro/specs/<spec名>/` のディレクトリ名を指す。
 
-## 手順
+## モード判定
+
+- spec の分解を依頼された場合は「新規 PR 作成モード」を実行する
+- 既存 PR のレビュー指摘対応を依頼された場合は「レビュー指摘対応モード」を実行する
+- レビュー指摘対応モードでは、`main` への切り替え、新規ブランチ作成、新規 PR 作成を行わない
+
+## 新規 PR 作成モード
 
 1. `#github-operations` steering を参照する
 2. `git status --short` で未コミット変更がないことを確認する
@@ -43,6 +55,32 @@ description: 120行を超えた既存 spec の要件・設計を再配置し、s
 22. `.github/PULL_REQUEST_TEMPLATE/spec-split.md` をもとに PR 本文を作成する
 23. `gh pr create --repo ky5bass/nestodo --title "docs: <spec名> spec を分解" --body-file <PR本文ファイル>` で PR を作成する
 24. 最終出力に、Claude Code に spec 分解必要十分性レビューを依頼するためのプロンプトをコードブロックで出力する
+
+PR 本文の末尾には、`#github-operations` steering に従って Kiro の署名を付ける。
+
+## レビュー指摘対応モード
+
+1. `#github-operations` steering を参照する
+2. `git status --short` で作業ツリーを確認し、対象 PR と無関係な未コミット変更がある場合は作業を止める
+3. PR 本文、head ブランチ、head commit SHA、差分を取得する
+4. PR 本文に `<!-- ai-agent:kiro -->` がある場合は Kiro が作成した PR であることを確認する。別エージェントのマーカーがある場合は作業を止める。マーカーのない既存 PR は、spec 分解 PR であることを本文と差分から確認して続行してよい
+5. 対象 PR の head ブランチへ切り替え、リモートの最新状態を fast-forward で取り込む
+6. PR のインラインレビューコメントと通常コメントを取得する。`<!-- claude-review:spec-split-completeness:` を含む未解決の指摘を主対象とし、各スレッドの返信も読む
+7. base 側の元 spec、PR 側の分解後 spec、分解対応表、`docs/spec-index.md` を読み、各指摘を独立に評価する
+8. 妥当な指摘は、元 spec に対する必要十分性を保ち、新しい仕様を追加せず修正する
+9. 対応しない指摘は、指摘が誤っている、元 spec に由来しない変更を要求している、または分解 PR のスコープ外である理由と根拠を整理する。レビュー指摘は必ず採用するものではない
+10. 修正した場合は必要十分性、行数、変更ファイルを再検証し、atomic commit を作成して同じ head ブランチへ push する
+11. すべての指摘スレッドへ、対応内容と commit SHA・検証結果、または対応しない具体的な理由と根拠を返信する
+12. 返信には Kiro の署名を付ける。Claude Code の再確認前に Kiro 自身でスレッドを解決しない
+13. 最終出力に、同じ `/spec-split-completeness-review` を再度呼び出して指摘対応を確認するためのプロンプトを出力する
+
+再確認依頼は次の形式にする:
+
+```text
+/spec-split-completeness-review
+
+spec 分解 PR #<PR番号> のレビュー指摘対応を再確認してください。
+```
 
 ## 分解ルール
 

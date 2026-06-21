@@ -53,6 +53,7 @@ description: このプロジェクトで gh CLI を使って GitHub Pull Request
      - 検証コマンドと結果。
      - スキップした optional task があれば記載する。
      - 無関係な既存失敗があれば記載する。
+     - 本文末尾の Codex 署名と `<!-- ai-agent:codex -->`。
 
 6. PR を作成する:
    ```bash

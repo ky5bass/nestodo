@@ -1,9 +1,15 @@
 ---
 name: task-implementer
-description: このプロジェクトで spec に基づく実装タスクを進めるときに使用する。Codex が .kiro/specs/<spec名>/tasks.md のタスクを実装する前の必読資料、依存 spec の確認、実装スコープ、技術スタック規約、検証、Git/PR 運用を判断するための skill。
+description: このプロジェクトで spec に基づく実装タスクを進める、または実装 PR に投稿されたレビュー指摘へ対応するときに使用する。Codex が .kiro/specs/ 配下の tasks.md のタスク実装や既存実装 PR の修正を行う前の必読資料、依存 spec の確認、実装スコープ、技術スタック規約、検証、Git/PR 運用を判断するための skill。
 ---
 
 # Task Implementer
+
+## モード判定
+
+- spec と `tasks.md` の実装を依頼された場合は、通常の「タスク実装モード」で進める
+- 実装 PR のレビュー指摘対応を依頼された場合は、同じスキルを「レビュー指摘対応モード」で再度使う
+- レビュー指摘対応モードでは、新しい PR を作成せず、対象 PR の head ブランチへ修正を push する
 
 ## 実装前の準備（必須）
 
@@ -42,6 +48,38 @@ spec 名が指定されていない場合は、`.kiro/specs/` 配下の候補を
 7. `docs/spec-index.md`
 8. このスキル（`.codex/skills/task-implementer/SKILL.md`）
 9. `.kiro/steering/development-rules.md`
+
+## レビュー指摘対応モード
+
+ユーザーから次のように依頼された場合に実行する:
+
+```text
+$task-implementer 実装 PR #XX のレビュー指摘に対応してください。
+```
+
+1. `.codex/skills/github-operations/SKILL.md` を読み、そこから案内される共通運用ルールとコマンドリファレンスを参照する
+2. `git status --short --branch` で作業ツリーを確認し、対象 PR と無関係な未コミット変更がある場合は作業を止める
+3. `gh pr view <PR番号> --repo ky5bass/nestodo --json body,headRefName,headRefOid,url` と PR 差分を取得する
+4. PR 本文に `<!-- ai-agent:codex -->` がある場合は Codex が作成した PR であることを確認する。別エージェントのマーカーがある場合は対象を取り違えず、作業を止める。マーカーのない既存 PR は、実装 PR であることを本文と差分から確認して続行してよい
+5. PR 本文から対象 spec と Issue を特定し、「実装前の準備」に従って spec、`tasks.md`、依存資料を読む
+6. 対象 PR の head ブランチへ切り替え、リモートの最新状態を fast-forward で取り込む
+7. PR のインラインレビューコメントと通常コメントを取得する。`<!-- claude-review:spec-impl:` を含む未解決の指摘を主対象とし、各スレッドの返信も読む
+8. 各指摘を spec、既存コード、テスト結果に照らして独立に評価する
+9. 妥当な指摘は、spec の範囲内で最小限の修正と必要なテストを実装する
+10. 対応しない指摘は、指摘が誤っている、spec の対象外、または別 Issue で扱うべき理由と根拠を整理する。レビュー指摘は必ず採用するものではない
+11. 修正した場合は、このスキルの検証コマンドを実行し、atomic commit を作成して同じ head ブランチへ push する
+12. すべての指摘スレッドへ返信する
+    - 対応した場合: 対応内容、commit SHA、検証結果
+    - 対応しない場合: 対応しない判断、具体的な理由、spec またはコード上の根拠
+13. 返信には Codex の署名と `<!-- ai-agent:codex -->` を付ける。Claude Code の再確認前に Codex 自身でスレッドを解決しない
+14. 指摘対応で新しい問題を発見しても、今回の spec 達成に必要な補助修正でなければスコープを広げず、別 Issue の候補として報告する
+15. 最終出力の最後に、同じレビュースキルを再度呼び出す次のプロンプトを、実際の PR 番号で出力する
+
+```text
+/spec-impl-checker 実装 PR #<PR番号> のレビュー指摘対応を再確認してください。
+```
+
+指摘を無言で放置してはならない。修正しない判断も、根拠を返信して初めて指摘対応済みとして扱う。
 
 ## 実装スコープの原則
 
