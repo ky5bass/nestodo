@@ -73,7 +73,7 @@ interface PendingChild {
 }
 ```
 
-### CompleteResult（TaskServiceレスポンス、task-management-coreで定義済み）
+### CompleteResult（TaskServiceレスポンス、task-completion-logicで定義済み）
 
 ```typescript
 // TaskService.complete()はCompleteResult、TaskService.update()はUpdateResultを返す
@@ -85,7 +85,7 @@ interface CompleteResult {
 }
 ```
 
-**設計判断**: PendingChildにtask_nameを含める拡張をtask-management-core側に要求した。モーダルでユーザーが影響範囲を判断するにはIDだけでは不十分であるためである。
+**設計判断**: PendingChildにtask_nameを含める拡張をtask-completion-logic側に要求した。モーダルでユーザーが影響範囲を判断するにはIDだけでは不十分であるためである。
 
 ## Correctness Properties
 

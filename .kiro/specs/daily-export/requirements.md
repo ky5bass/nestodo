@@ -14,7 +14,7 @@ nestodoの日報エクスポート機能を定義する。ユーザーが1日の
 - **Today_Results**: 当日（Day_Boundary基準）に作業実績があったタスクの一覧セクション
 - **Remaining_Tasks**: 未完了かつexport_flag有効なタスクの一覧セクション
 - **Day_Boundary**: 日付の切り替わり時刻（午前5時）。display-and-filterで定義済み
-- **last_done_at**: タスクの最終実施日。task-management-coreで定義済み
+- **last_done_at**: タスクの最終実施日。task-last-doneで定義済み
 
 ## Requirements
 
