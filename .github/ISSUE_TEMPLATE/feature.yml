@@ -14,8 +14,10 @@ body:
         - menu-button
         - pwa-install
         - pwa-offline
+        - task-completion-logic
+        - task-crud
         - task-detail-panel
-        - task-management-core
+        - task-last-done
         - 新規 spec
         - 未定（後で判断）
     validations:
