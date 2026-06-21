@@ -1,12 +1,17 @@
 ---
 name: spec-split-completeness-review
-description: spec 分解 PR を人間がレビューする前に、元 spec と分解後 spec の requirements.md / design.md が必要十分に対応し、欠落や余剰がないか確認するときに使う。
+description: spec 分解 PR を人間がレビューする前に、元 spec と分解後 spec の requirements.md / design.md が必要十分に対応し、欠落や余剰がないか確認するとき、または同じレビューで投稿した指摘への Kiro の対応を再確認するときに使う。
 ---
 
 # Spec 分解必要十分性レビュー
 
 spec 分解 PR を人間がレビューする前に、元 spec の `requirements.md` / `design.md` と分解後 spec の `requirements.md` / `design.md` が必要十分に対応しているか確認する。
 この skill は記述品質レビューではなく、分解前後の対応関係、欠落、余剰、意味変化の確認に集中する。
+
+## モード判定
+
+- 未レビューの PR または通常のレビュー依頼では「初回レビューモード」を実行する
+- 「レビュー指摘対応を再確認」と依頼された場合、または同じ PR にこのスキルの識別子付き指摘がある場合は「指摘対応再確認モード」を実行する
 
 ## 読むファイル
 
@@ -69,3 +74,30 @@ PR 番号または PR URL が指定されている場合は、`/github-operation
   - 指摘: `<!-- claude-review:spec-split-completeness:<head SHA>:finding:<連番> -->`
   - 総括: `<!-- claude-review:spec-split-completeness:<head SHA>:summary -->`
 - 投稿前に既存のインラインレビューコメントと通常コメントを確認し、同じ識別子があるコメントは再投稿しない
+- 各投稿の末尾では、`claude-review` 識別子の直前に Claude Code の署名と `<!-- ai-agent:claude-code -->` を入れる
+
+## 指摘対応再確認モード
+
+同じ `/spec-split-completeness-review` を再度呼び出して実行する。
+
+1. `/github-operations` を参照し、最新 head commit SHA、レビューコメント、返信、レビュースレッドの解決状態を取得する
+2. `<!-- claude-review:spec-split-completeness:` を含む各未解決指摘について、Kiro の返信と署名、返信で示された commit、最新差分を対応付ける
+3. 修正された指摘は、base 側の元 spec、分解後 spec、分解対応表、`docs/spec-index.md` を再照合し、欠落・余剰・意味変化が解消したか確認する
+4. 対応しない旨が返信されている指摘は、その理由が元 spec の内容と分解 PR のスコープに照らして妥当か独立に評価する。指摘の採用自体を必須としない
+5. 各スレッドを `解決` / `継続` / `未返信` に分類する
+6. `解決` のスレッドには再確認結果を返信してから解決する
+7. `継続` のスレッドには不足内容を返信して未解決のまま残す。新たに独立した問題だけを最新 head SHA の新規インライン指摘として投稿する
+8. `未返信` のスレッドは解決せず、返信が必要であることを総括に記載する
+9. 通常コメントへ各分類の件数、必要十分性の再判定、マージへ進めるかを投稿する
+10. チャット応答には各指摘の判定と、残る指摘がある場合だけ Kiro へ同じ steering を再度呼び出すプロンプトを出力する
+
+再確認返信と総括には次の識別子を使い、Claude Code の署名を付ける。
+
+- スレッド返信: `<!-- claude-review:spec-split-completeness:<head SHA>:recheck:<元コメントID> -->`
+- 総括: `<!-- claude-review:spec-split-completeness:<head SHA>:recheck-summary -->`
+
+残る指摘がある場合の Kiro 向けプロンプト:
+
+```text
+#spec-split spec 分解 PR #<PR番号> のレビュー指摘に対応してください。
+```

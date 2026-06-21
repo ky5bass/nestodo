@@ -1,12 +1,17 @@
 ---
 name: spec-quality-review
-description: spec PR を人間がレビューする前に、Kiro spec の requirements.md と design.md の記述品質、行数、設計理由、development-rules.md への準拠を確認するときに使う。
+description: spec PR を人間がレビューする前に、Kiro spec の requirements.md と design.md の記述品質、行数、設計理由、development-rules.md への準拠を確認するとき、または同じレビューで投稿した指摘への Kiro の対応を再確認するときに使う。
 ---
 
 # Spec 品質レビュー
 
 spec PR を人間がレビューする前に、対象 spec 一覧に含まれる各 spec の `requirements.md` と `design.md` がプロジェクトの spec 運用ルールに沿っているか確認する。
 対象 spec が 1 件だけでも、依頼では必ずリストとして列挙される前提で読む。
+
+## モード判定
+
+- 未レビューの PR または通常のレビュー依頼では「初回レビューモード」を実行する
+- 「レビュー指摘対応を再確認」と依頼された場合、または同じ PR にこのスキルの識別子付き指摘がある場合は「指摘対応再確認モード」を実行する
 
 ## 読むファイル
 
@@ -64,3 +69,33 @@ PR 番号または PR URL が指定されている場合は、`/github-operation
   - 指摘: `<!-- claude-review:spec-quality:<head SHA>:finding:<連番> -->`
   - 総括: `<!-- claude-review:spec-quality:<head SHA>:summary -->`
 - 投稿前に既存のインラインレビューコメントと通常コメントを確認し、同じ識別子があるコメントは再投稿しない
+- 各投稿の末尾では、`claude-review` 識別子の直前に Claude Code の署名と `<!-- ai-agent:claude-code -->` を入れる
+
+## 指摘対応再確認モード
+
+同じ `/spec-quality-review` を再度呼び出して実行する。新しいスキルは使わない。
+
+1. `/github-operations` を参照し、PR の最新 head commit SHA、レビューコメント、返信、レビュースレッドの解決状態を取得する
+2. `<!-- claude-review:spec-quality:` を含む各未解決指摘について、Kiro の返信と署名、返信で示された commit、最新差分を対応付ける
+3. 対応した指摘は、指摘箇所だけでなく関連する requirements/design、行数、Issue の承認済み内容との整合まで再確認する
+4. 対応しない旨が返信されている指摘は、その理由をルール、Issue、spec、差分に照らして独立に評価する。指摘の採用自体を必須としない
+5. 各スレッドを次のいずれかに分類する
+   - `解決`: 修正が妥当、または対応しない理由が妥当
+   - `継続`: 修正不足、回帰、検証不足、または対応しない理由が不十分
+   - `未返信`: Kiro から判断と根拠の返信がない
+6. `解決` のスレッドには再確認結果を返信してから解決する
+7. `継続` のスレッドには不足内容を返信し、解決しない。新たに独立した問題を発見した場合だけ、最新 head SHA を使って新しいインライン指摘を投稿する
+8. `未返信` のスレッドは解決せず、返信が必要であることを総括に記載する
+9. PR の通常コメントへ、解決・継続・未返信の件数、最新検証結果、マージへ進めるかを再確認総括として投稿する
+10. チャット応答には、各指摘の判定と、残る指摘がある場合だけ Kiro へ同じ steering を再度呼び出すプロンプトを出力する
+
+再確認返信と総括には次の識別子を使い、同じ識別子がある場合は再投稿しない。
+
+- スレッド返信: `<!-- claude-review:spec-quality:<head SHA>:recheck:<元コメントID> -->`
+- 総括: `<!-- claude-review:spec-quality:<head SHA>:recheck-summary -->`
+
+残る指摘がある場合の Kiro 向けプロンプト:
+
+```text
+#spec-update-from-approved-issue spec PR #<PR番号> のレビュー指摘に対応してください。
+```

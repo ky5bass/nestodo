@@ -80,3 +80,56 @@ gh api repos/ky5bass/nestodo/pulls/<番号>/comments --paginate --jq '.[].body'
 ```bash
 gh api repos/ky5bass/nestodo/issues/<番号>/comments --paginate --jq '.[].body'
 ```
+
+## インラインレビューコメントへの返信
+
+返信先コメントの ID は、既存インラインレビューコメント取得結果の `id` と `in_reply_to_id` から確認する。
+
+```bash
+gh api repos/ky5bass/nestodo/pulls/<番号>/comments --paginate \
+  --jq '.[] | {id, in_reply_to_id, path, line, body}'
+```
+
+```bash
+gh api --method POST \
+  repos/ky5bass/nestodo/pulls/<PR番号>/comments/<返信先コメントID>/replies \
+  -F body=@reply.md
+```
+
+## レビュースレッドの確認・解決
+
+Claude Code が指摘対応を再確認するときは、GraphQL API でスレッドの解決状態とコメントを取得する。
+
+```bash
+gh api graphql \
+  -F owner=ky5bass \
+  -F name=nestodo \
+  -F number=<PR番号> \
+  -f query='
+    query($owner:String!, $name:String!, $number:Int!) {
+      repository(owner:$owner, name:$name) {
+        pullRequest(number:$number) {
+          reviewThreads(first:100) {
+            nodes {
+              id
+              isResolved
+              comments(first:100) {
+                nodes { databaseId body author { login } }
+              }
+            }
+          }
+        }
+      }
+    }'
+```
+
+```bash
+gh api graphql \
+  -F threadId=<レビュースレッドのNode ID> \
+  -f query='
+    mutation($threadId:ID!) {
+      resolveReviewThread(input:{threadId:$threadId}) {
+        thread { id isResolved }
+      }
+    }'
+```
