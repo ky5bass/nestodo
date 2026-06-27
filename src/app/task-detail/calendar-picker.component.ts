@@ -8,7 +8,7 @@ import { TimePickerComponent, TimePickerValue } from './time-picker.component';
   imports: [TimePickerComponent],
   template: `
     <div class="calendar-field">
-      <button type="button" class="display-button" (click)="open.update((value) => !value)">
+      <button type="button" class="display-button" (click)="toggleOpen()">
         {{ displayValue() }}
       </button>
       @if (open()) {
@@ -89,6 +89,10 @@ export class CalendarPickerComponent {
 
   @Input() value: string | null = null;
   @Output() readonly valueChange = new EventEmitter<string | null>();
+
+  toggleOpen(): void {
+    this.open.update((value) => !value);
+  }
 
   displayValue(): string {
     if (!this.value) {
