@@ -111,8 +111,9 @@ export class CalendarPickerComponent {
   }
 
   selectShortcut(offsetDays: number): void {
+    const parts = this.localParts();
     const date = new Date();
-    date.setHours(0, 0, 0, 0);
+    date.setHours(parts.hours, parts.minutes, 0, 0);
     date.setDate(date.getDate() + offsetDays);
     this.emitLocal(date);
     this.open.set(false);

@@ -62,7 +62,9 @@ export class TaskListService {
   }
 
   mergeTaskLocally(task: TaskDetail): void {
-    this.patchTaskLocally(task.id, task as Partial<TaskTreeNode>);
+    const taskFields = { ...task } as Partial<TaskTreeNode>;
+    delete taskFields.children;
+    this.patchTaskLocally(task.id, taskFields);
   }
 
   private patchTaskLocally(taskId: string, patch: Partial<TaskTreeNode>): void {

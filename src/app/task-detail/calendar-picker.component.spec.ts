@@ -28,4 +28,17 @@ describe('CalendarPickerComponent', () => {
     expect(component.open()).toBeFalse();
     jasmine.clock().uninstall();
   });
+
+  it('ショートカットは選択済みの時刻を維持して日付だけを変更する', () => {
+    jasmine.clock().install();
+    jasmine.clock().mockDate(new Date(2026, 5, 1, 12, 0, 0));
+    spyOn(component.valueChange, 'emit');
+    component.value = new Date(2026, 4, 20, 14, 35, 0).toISOString();
+
+    component.selectShortcut(1);
+
+    const emitted = component.valueChange.emit.calls.mostRecent().args[0];
+    expect(emitted).toBe(new Date(2026, 5, 2, 14, 35, 0).toISOString());
+    jasmine.clock().uninstall();
+  });
 });
