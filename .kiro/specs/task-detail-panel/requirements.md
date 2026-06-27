@@ -46,61 +46,6 @@
 5. pre_info, notes, reflectionが編集された場合、Detail_Panelはtask_contentsテーブルへの保存リクエストを送信すること
 6. progressに0〜100の範囲外の値が入力された場合、Detail_Panelはバリデーションエラーを表示し保存を実行しないこと
 
-### Requirement 9: 種別ラジオボタンUI
-
-**User Story:** ユーザーとして、種別をラジオボタンで直感的に切り替えたい。ドロップダウンより少ない操作で変更するため。
-
-#### Acceptance Criteria
-
-1. Detail_Panelはtask_typeを「TODO」「予定」の2択ラジオボタンで表示すること
-2. ラジオボタンの選択変更時、Detail_Panelは即座にDetail_Save_Service経由でtask_typeを保存すること
-3. task_type変更に伴うevent_atラベル切り替え（「期限」⇔「開始日時」）は従来通り動作すること
-
-### Requirement 10: カレンダーピッカーUI
-
-**User Story:** ユーザーとして、期限/開始日時をカレンダーから直感的に選択したい。日付入力の手間を減らすため。
-
-#### Acceptance Criteria
-
-1. Detail_Panelはevent_atフィールドのクリックでCalendar_Picker（日付選択）とTime_Picker（時刻選択）を表示すること
-2. Calendar_Pickerは「今日」「明日」「1週間後」のショートカットボタンを配置すること
-3. ショートカットボタン押下時、該当日付が即セットされCalendar_Pickerが閉じること
-4. Time_Pickerは5分刻み（0, 5, 10, ..., 55）で時刻を選択可能とすること
-5. Time_Pickerの時間（0〜23）・分（0〜55）は端で止まりループしないこと
-6. event_atのデフォルト時刻は00:00とすること
-7. 日付・時刻選択後、Detail_Panelは即座にDetail_Save_Service経由でevent_atを保存すること
-
-### Requirement 11: ステータストグルスイッチUI
-
-**User Story:** ユーザーとして、ステータスをスイッチで素早く切り替えたい。完了/未完了の変更を1タップで行うため。
-
-#### Acceptance Criteria
-
-1. Detail_Panelはstatusを未完了/完了のトグルスイッチで表示すること
-2. 未完了→完了のスイッチ切り替え時、Detail_Save_Serviceはstatusを完了に、progressを100に同時更新すること
-3. 完了→未完了のスイッチ切り替え時、Detail_PanelはRevert_Modalを表示すること（従来のRevert_Modal動作を維持）
-
-### Requirement 12: 優先度セグメントコントロールUI
-
-**User Story:** ユーザーとして、優先度を横並びボタンで素早く変更したい。現在の優先度と選択肢が一目で分かるため。
-
-#### Acceptance Criteria
-
-1. Detail_Panelはpriorityをnone/priority/highestの3ボタン横並びセグメントコントロールで表示すること
-2. 選択中のボタンはハイライト表示されること
-3. ボタンタップ時、Detail_Panelは即座にDetail_Save_Service経由でpriorityを保存すること
-
-### Requirement 13: 進捗スライダーUI
-
-**User Story:** ユーザーとして、進捗をスライダーで直感的に設定したい。数値入力よりドラッグ操作で素早く変更するため。
-
-#### Acceptance Criteria
-
-1. Detail_Panelはprogressを0〜100の連続値スライダーで表示し、横にパーセント数値を表示すること
-2. スライダー操作で値が変更された場合、Detail_Save_Service経由で保存すること（デバウンスあり）
-3. progress=100到達時のCompletion_Trigger動作は従来仕様を維持すること
-4. 進捗スライダーはTimeInputComponent（離散値スライダー）とは独立した連続値スライダーであること
-
 ### Requirement 3: ステータス完了操作
 
 **User Story:** ユーザーとして、詳細パネルからタスクを直接完了にしたい。進捗を手動で100にする手間を省くため。
@@ -169,3 +114,58 @@
 5. progressおよびactual_time以外のフィールド編集時には、Update_Last_Done_Checkboxを表示しないこと
 6. Detail_Panelはlast_done_atを読み取り専用で表示し、直接編集を受け付けないこと
 7. トグルスイッチによる完了切り替え時、Detail_Save_Serviceはtz_offset（JSのgetTimezoneOffset()値）を完了リクエストに含めること
+
+### Requirement 9: 種別ラジオボタンUI
+
+**User Story:** ユーザーとして、種別をラジオボタンで直感的に切り替えたい。ドロップダウンより少ない操作で変更するため。
+
+#### Acceptance Criteria
+
+1. Detail_Panelはtask_typeを「TODO」「予定」の2択ラジオボタンで表示すること
+2. ラジオボタンの選択変更時、Detail_Panelは即座にDetail_Save_Service経由でtask_typeを保存すること
+3. task_type変更に伴うevent_atラベル切り替え（「期限」⇔「開始日時」）は従来通り動作すること
+
+### Requirement 10: カレンダーピッカーUI
+
+**User Story:** ユーザーとして、期限/開始日時をカレンダーから直感的に選択したい。日付入力の手間を減らすため。
+
+#### Acceptance Criteria
+
+1. Detail_Panelはevent_atフィールドのクリックでCalendar_Picker（日付選択）とTime_Picker（時刻選択）を表示すること
+2. Calendar_Pickerは「今日」「明日」「1週間後」のショートカットボタンを配置すること
+3. ショートカットボタン押下時、該当日付が即セットされCalendar_Pickerが閉じること
+4. Time_Pickerは5分刻み（0, 5, 10, ..., 55）で時刻を選択可能とすること
+5. Time_Pickerの時間（0〜23）・分（0〜55）は端で止まりループしないこと
+6. event_atのデフォルト時刻は00:00とすること
+7. 日付・時刻選択後、Detail_Panelは即座にDetail_Save_Service経由でevent_atを保存すること
+
+### Requirement 11: ステータストグルスイッチUI
+
+**User Story:** ユーザーとして、ステータスをスイッチで素早く切り替えたい。完了/未完了の変更を1タップで行うため。
+
+#### Acceptance Criteria
+
+1. Detail_Panelはstatusを未完了/完了のトグルスイッチで表示すること
+2. 未完了→完了のスイッチ切り替え時の動作はRequirement 3に従うこと
+3. 完了→未完了のスイッチ切り替え時の動作はRequirement 4に従うこと
+
+### Requirement 12: 優先度セグメントコントロールUI
+
+**User Story:** ユーザーとして、優先度を横並びボタンで素早く変更したい。現在の優先度と選択肢が一目で分かるため。
+
+#### Acceptance Criteria
+
+1. Detail_Panelはpriorityをnone/priority/highestの3ボタン横並びセグメントコントロールで表示すること
+2. 選択中のボタンはハイライト表示されること
+3. ボタンタップ時、Detail_Panelは即座にDetail_Save_Service経由でpriorityを保存すること
+
+### Requirement 13: 進捗スライダーUI
+
+**User Story:** ユーザーとして、進捗をスライダーで直感的に設定したい。数値入力よりドラッグ操作で素早く変更するため。
+
+#### Acceptance Criteria
+
+1. Detail_Panelはprogressを0〜100の連続値スライダーで表示し、横にパーセント数値を表示すること
+2. スライダー操作で値が変更された場合、Detail_Save_Service経由で保存すること（デバウンスあり）
+3. progress=100到達時のCompletion_Trigger動作は従来仕様を維持すること
+4. 進捗スライダーはTimeInputComponent（離散値スライダー）とは独立した連続値スライダーであること

@@ -236,11 +236,13 @@ interface TaskContentUpdateRequest {
 
 **単体テスト**: 各コンポーネントの表示・条件分岐・バリデーションをexample-basedで検証。Angular TestBedを使用。
 
-**プロパティテスト**: [fast-check](https://github.com/dubzzz/fast-check)を使用し、上記4つの正しさの性質を各100回以上のランダム入力で検証。
+**プロパティテスト**: [fast-check](https://github.com/dubzzz/fast-check)を使用し、上記6つの正しさの性質を各100回以上のランダム入力で検証。
 
 - Property 1: ランダムなprogress値(0-100)設定後のstatus状態を検証
 - Property 2: ランダムな正整数に対するsnapToNearestの戻り値を検証
 - Property 3: Completion_Triggerを除くランダムなフィールド×値の組み合わせで成功/失敗時のUI状態を検証
 - Property 4: ランダムな編集シーケンス生成後、送信値が最終値のみであることを検証
+- Property 5: ランダムな操作シーケンス（増減連打）でTime_Pickerの時間(0-23)・分(0-55)が範囲外にならないことを検証
+- Property 6: ランダムな基準日に対し、各ショートカットボタンが正しいオフセット日を設定することを検証
 
 **結合テスト**: API呼び出しのモックを用いたDetailSaveServiceのE2Eフロー検証。
