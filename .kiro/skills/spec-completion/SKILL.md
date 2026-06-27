@@ -1,6 +1,13 @@
 ---
-inclusion: manual
-description: 実装PRマージ後のバージョン付与・spec-index更新・tasks.md削除・Issueクローズの手順
+name: "spec-completion"
+description: >
+  実装PRマージ後のバージョン付与・spec-index更新・tasks.md削除・Issueクローズの完了処理を実行する。
+  使用タイミング: ユーザーが実装PRマージ後にspec完了処理を依頼した場合に使用する。
+  トリガーキーワード（日本語）: spec完了処理, spec完了, spec-completion, 完了処理をお願いします。
+  トリガーキーワード（英語）: spec completion, complete spec。
+metadata:
+  version: "1.0"
+  author: "kiro"
 ---
 
 # spec 完了処理

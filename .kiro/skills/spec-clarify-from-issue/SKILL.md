@@ -1,6 +1,13 @@
 ---
-inclusion: manual
-description: GitHub Issue の内容をユーザーとの対話で具体化し、承認された spec 反映案を Issue に記録してセッションを終了する手順
+name: "spec-clarify-from-issue"
+description: >
+  GitHub Issue の内容をユーザーとの対話で具体化し、承認された spec 反映案を Issue にコメントとして記録するSkill。
+  使用タイミング: ユーザーが Issue をもとに spec を更新・新規作成したいが、Issue の内容が曖昧で spec に反映できる粒度に達していない場合に使用する。
+  トリガーキーワード（日本語）: spec具体化, Issue具体化, Issue を具体化, spec-clarify-from-issue。
+  トリガーキーワード（英語）: spec clarify from issue, clarify issue for spec。
+metadata:
+  version: "1.0"
+  author: "kiro"
 ---
 
 # Issue を具体化して承認内容を記録する手順
@@ -33,7 +40,7 @@ description: GitHub Issue の内容をユーザーとの対話で具体化し、
 
 ## 対話による具体化ルール
 
-- 原則として一度に 1 つの論点を質問する。互いに強く関連し、簡単に回答できる論点は 2〜3 件までまとめてよい
+- **必ず一度に 1 つの論点だけを質問する。** 複数の論点を同時に質問してはならない。関連する論点であっても分けて順番に質問すること
 - 白紙から考えさせる質問を避け、推奨案とその簡潔な理由を示す。選択肢が有効な場合は、推奨案を含む少数の選択肢を示す
 - Issue 本文、Issue コメント、既存 spec から判断できる事項を重ねて質問しない
 - ユーザーが判断する必要のない内部実装の詳細は質問せず、既存設計とプロジェクトルールから合理的に決める

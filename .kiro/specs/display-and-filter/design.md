@@ -2,11 +2,11 @@
 
 ## Meta
 
-- **バージョン**: v1.0
+- **バージョン**: v1.1
 
 ## Overview
 
-タスクリストのツリー表示、詳細パネル遷移、グローバルフィルター（effective_at算出・表示条件・先祖包含）、日付境界を実現する設計。フロントエンドは`TaskListComponent`と`TaskListService`、バックエンドは`FilterService`と専用エンドポイントで構成する。
+タスクリストのツリー表示、詳細パネル遷移、グローバルフィルター（effective_at算出・表示条件・先祖包含）、日付境界、および詳細パネルからの一覧即時反映を実現する設計。フロントエンドは`TaskListComponent`と`TaskListService`、バックエンドは`FilterService`と専用エンドポイントで構成する。
 
 **設計判断**: フィルターロジックをサーバーサイドに集約した。クライアントに全タスクを送信してフィルターするとデータ量が増大し、ロジックの二重管理が発生するためである。
 
@@ -48,8 +48,12 @@ export class TaskListService {
   loadTasks(): void;
   selectTask(taskId: string): void;  // トグル動作含む
   closePanel(): void;
+  updateTaskLocally(taskId: string, field: string, value: unknown): void; // 一覧即時反映
+  rollbackTaskLocally(taskId: string, field: string, previousValue: unknown): void; // エラー時ロールバック
 }
 ```
+
+**設計判断**: 詳細パネルでの保存成功後にtasks Signalをローカルで直接更新する方式とした。API再取得を行わず、Optimistic UIの延長としてフロントエンドで完結させることで、レスポンスを待たず一覧に即反映できるためである。サーバーエラー時のロールバックも一覧側に反映し、一貫性を保つ。
 
 ### TaskRowComponent (Angular - Frontend)
 
@@ -134,6 +138,12 @@ GET /api/tasks?filtered=true&tz_offset=-540
 *任意の*タスクIDのクリックシーケンスにおいて、同一タスクの連続クリックはパネルの開閉をトグルし、異なるタスクのクリックはパネルを開いたまま対象を切り替えること。
 
 **Validates: Requirements 2.2, 2.3**
+
+### Property 8: 一覧即時反映の整合性
+
+*任意の*フィールド更新に対し、DetailSaveServiceの保存成功後にTaskListServiceのtasks Signal内の該当タスクの該当フィールドが新しい値に更新されていること。サーバーエラー時は変更前の値に戻ること。
+
+**Validates: Requirements 7.1, 7.2, 7.3**
 
 ## Error Handling
 

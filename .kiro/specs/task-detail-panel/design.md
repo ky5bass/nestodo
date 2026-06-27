@@ -1,10 +1,10 @@
 # 設計ドキュメント: task-detail-panel
 
-**バージョン: v1.0**
+**バージョン: v1.1**
 
 ## Overview
 
-タスク詳細パネルの属性表示・インライン編集・Optimistic UI保存を実現する設計。パネル本体（`TaskDetailPanelComponent`）、作業時間入力（`TimeInputComponent`）、ステータス戻しモーダル（`RevertModalComponent`）、保存サービス（`DetailSaveService`）の4要素で構成する。
+タスク詳細パネルの属性表示・インライン編集・Optimistic UI保存を実現する設計。パネル本体（`TaskDetailPanelComponent`）、作業時間入力（`TimeInputComponent`）、カレンダーピッカー（`CalendarPickerComponent`）、進捗スライダー（`ProgressSliderComponent`）、ステータス戻しモーダル（`RevertModalComponent`）、保存サービス（`DetailSaveService`）で構成する。
 
 **設計判断**: コンポーネントを機能単位で分割し、保存ロジックをサービスに集約した。これはAngularのDI機構を活かしてテスト容易性を確保し、Optimistic UI・デバウンス・ロールバックの責務を一箇所に閉じるためである。
 
@@ -12,6 +12,12 @@
 
 ```
 TaskDetailPanelComponent
+├── TaskTypeRadioComponent (種別ラジオボタン)
+├── CalendarPickerComponent (期限/開始日時)
+│     └── TimePickerComponent (時刻選択)
+├── StatusToggleComponent (ステータストグルスイッチ)
+├── PrioritySegmentComponent (優先度セグメントコントロール)
+├── ProgressSliderComponent (進捗スライダー)
 ├── TimeInputComponent (estimated_time / actual_time)
 ├── RevertModalComponent (完了→未完了時)
 └── DetailSaveService (Optimistic UI + debounce + rollback)
@@ -21,6 +27,93 @@ TaskDetailPanelComponent
 **設計判断**: 各フィールド編集を個別APIコールとした。一括保存ではなく個別保存とすることで、デバウンス単位を細かく制御でき、競合リスクを最小化できるためである。
 
 ## Components and Interfaces
+
+### TaskTypeRadioComponent
+
+```typescript
+@Component({ selector: 'app-task-type-radio', standalone: true })
+export class TaskTypeRadioComponent {
+  @Input() value: 'TODO' | 'SCHEDULE';
+  @Output() valueChange = new EventEmitter<'TODO' | 'SCHEDULE'>();
+}
+```
+
+**設計判断**: ラジオボタンUIとした。選択肢が2つだけ（TODO/予定）であり、ドロップダウンよりワンタップで操作が完結するためである。選択変更時に即保存を発火する。
+
+### CalendarPickerComponent
+
+```typescript
+@Component({ selector: 'app-calendar-picker', standalone: true })
+export class CalendarPickerComponent {
+  @Input() value: string | null; // ISO datetime string
+  @Output() valueChange = new EventEmitter<string | null>();
+
+  readonly SHORTCUTS = [
+    { label: '今日', offsetDays: 0 },
+    { label: '明日', offsetDays: 1 },
+    { label: '1週間後', offsetDays: 7 },
+  ];
+  
+  selectShortcut(offsetDays: number): void; // 該当日付をセットしピッカーを閉じる
+}
+```
+
+**設計判断**: ショートカットボタンを配置した。ユーザーの大半が「今日」「明日」「1週間後」を設定するという操作性向上の要望を受けたためである。ショートカット押下でカレンダーが閉じるのは、選択完了を明示するためである。
+
+### TimePickerComponent
+
+```typescript
+@Component({ selector: 'app-time-picker', standalone: true })
+export class TimePickerComponent {
+  @Input() hours: number;   // 0-23
+  @Input() minutes: number; // 0, 5, 10, ..., 55
+  @Output() timeChange = new EventEmitter<{ hours: number; minutes: number }>();
+
+  readonly MINUTE_STEP = 5;
+  readonly HOUR_MIN = 0;
+  readonly HOUR_MAX = 23;
+  readonly MINUTE_MIN = 0;
+  readonly MINUTE_MAX = 55;
+}
+```
+
+**設計判断**: 時間・分は端で止まりループしない仕様とした。ループにより意図しない値になる使いにくさを解消するためである（承認済みコメントで明示された判断）。5分刻みとしたのは、分単位の精度と操作の手軽さのバランスを取るためである。
+
+### StatusToggleComponent
+
+```typescript
+@Component({ selector: 'app-status-toggle', standalone: true })
+export class StatusToggleComponent {
+  @Input() isComplete: boolean;
+  @Output() toggle = new EventEmitter<boolean>(); // true=完了, false=未完了
+}
+```
+
+**設計判断**: トグルスイッチとした。ステータスは2値（完了/未完了）であり、見た目の変更として最も直感的なUIであるため。完了→未完了時のRevert_Modalは維持し、安全弁を残す判断は承認済みコメントで明示されたとおりである。
+
+### PrioritySegmentComponent
+
+```typescript
+@Component({ selector: 'app-priority-segment', standalone: true })
+export class PrioritySegmentComponent {
+  @Input() value: 'none' | 'priority' | 'highest';
+  @Output() valueChange = new EventEmitter<'none' | 'priority' | 'highest'>();
+}
+```
+
+**設計判断**: セグメントコントロール（3ボタン横並び）とした。選択肢が3つで全て常に表示されるため、ドロップダウンより現在値と選択肢が一目で分かり操作が速いためである。
+
+### ProgressSliderComponent
+
+```typescript
+@Component({ selector: 'app-progress-slider', standalone: true })
+export class ProgressSliderComponent {
+  @Input() value: number; // 0-100
+  @Output() valueChange = new EventEmitter<number>();
+}
+```
+
+**設計判断**: 0〜100の連続値スライダーとした。既存のTimeInputComponent（離散値スライダー）とは異なり、進捗は連続的な割合を表すため連続値が自然である。TimeInputの既存仕様は維持する（承認済みコメントで明示された判断）。
 
 ### DetailSaveService
 
@@ -97,9 +190,9 @@ interface TaskContentUpdateRequest {
 
 ### Property 1: Progress=100とStatus完了の不変条件
 
-*任意の*タスクに対し、progressが100に設定された場合（手動入力・完了ボタン問わず）、statusは必ず完了状態となること。
+*任意の*タスクに対し、progressが100に設定された場合（スライダー操作・トグルスイッチ問わず）、statusは必ず完了状態となること。
 
-**Validates: Requirements 3.3**
+**Validates: Requirements 3.1, 3.2, 11.2**
 
 ### Property 2: Time_Inputの最近傍スナップ
 
@@ -119,6 +212,18 @@ interface TaskContentUpdateRequest {
 
 **Validates: Requirements 7.4**
 
+### Property 5: Time_Pickerの端止まり不変条件
+
+*任意の*操作シーケンスにおいて、Time_Pickerの時間は0〜23、分は0〜55の範囲を超えないこと。端に達した場合は値が変化しないこと（ループしない）。
+
+**Validates: Requirements 10.5**
+
+### Property 6: ショートカットボタンの日付設定
+
+*任意の*基準日に対し、「今日」「明日」「1週間後」のショートカットボタンが設定する日付は、それぞれ基準日+0日、+1日、+7日と等しいこと。
+
+**Validates: Requirements 10.2, 10.3**
+
 ## Error Handling
 
 | エラー種別 | 対応 |
@@ -131,11 +236,13 @@ interface TaskContentUpdateRequest {
 
 **単体テスト**: 各コンポーネントの表示・条件分岐・バリデーションをexample-basedで検証。Angular TestBedを使用。
 
-**プロパティテスト**: [fast-check](https://github.com/dubzzz/fast-check)を使用し、上記4つの正しさの性質を各100回以上のランダム入力で検証。
+**プロパティテスト**: [fast-check](https://github.com/dubzzz/fast-check)を使用し、上記6つの正しさの性質を各100回以上のランダム入力で検証。
 
 - Property 1: ランダムなprogress値(0-100)設定後のstatus状態を検証
 - Property 2: ランダムな正整数に対するsnapToNearestの戻り値を検証
 - Property 3: Completion_Triggerを除くランダムなフィールド×値の組み合わせで成功/失敗時のUI状態を検証
 - Property 4: ランダムな編集シーケンス生成後、送信値が最終値のみであることを検証
+- Property 5: ランダムな操作シーケンス（増減連打）でTime_Pickerの時間(0-23)・分(0-55)が範囲外にならないことを検証
+- Property 6: ランダムな基準日に対し、各ショートカットボタンが正しいオフセット日を設定することを検証
 
 **結合テスト**: API呼び出しのモックを用いたDetailSaveServiceのE2Eフロー検証。
