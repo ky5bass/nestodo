@@ -2,8 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, effect, signal } from '@angular/core';
 
 import { BatchCompletionModalComponent } from './batch-completion-modal.component';
+import { CalendarPickerComponent } from './calendar-picker.component';
 import { DetailSaveService } from './detail-save.service';
+import { PrioritySegmentComponent } from './priority-segment.component';
+import { ProgressSliderComponent } from './progress-slider.component';
 import { RevertModalComponent } from './revert-modal.component';
+import { StatusToggleComponent } from './status-toggle.component';
 import {
   RevertResult,
   TaskContentField,
@@ -13,11 +17,22 @@ import {
   TaskType
 } from './task-detail.model';
 import { TimeInputComponent } from './time-input.component';
+import { TaskTypeRadioComponent } from './task-type-radio.component';
 
 @Component({
   selector: 'app-task-detail-panel',
   standalone: true,
-  imports: [CommonModule, TimeInputComponent, RevertModalComponent, BatchCompletionModalComponent],
+  imports: [
+    CommonModule,
+    CalendarPickerComponent,
+    PrioritySegmentComponent,
+    ProgressSliderComponent,
+    StatusToggleComponent,
+    TaskTypeRadioComponent,
+    TimeInputComponent,
+    RevertModalComponent,
+    BatchCompletionModalComponent
+  ],
   template: `
     @if (currentTask(); as detail) {
       <aside class="detail-panel" aria-label="タスク詳細">
@@ -62,70 +77,37 @@ import { TimeInputComponent } from './time-input.component';
         </div>
 
         <section class="fields">
-          <label>
-            種別
-            <select
-              [value]="detail.task_type"
-              (focus)="activeLastDoneField.set(null)"
-              (change)="saveTaskType(detail, $any($event.target).value)"
-            >
-              <option value="TODO">TODO</option>
-              <option value="SCHEDULE">SCHEDULE</option>
-            </select>
-          </label>
+          <app-task-type-radio
+            [value]="detail.task_type"
+            (valueChange)="activeLastDoneField.set(null); saveTaskType(detail, $event)"
+          />
 
           <label>
             {{ eventLabel(detail.task_type) }}
-            <input
-              type="datetime-local"
-              [value]="toLocalInputValue(detail.event_at)"
-              (focus)="activeLastDoneField.set(null)"
-              (change)="saveEventAt(detail, $any($event.target).value)"
+            <app-calendar-picker
+              [value]="detail.event_at"
+              (valueChange)="activeLastDoneField.set(null); saveEventAt(detail, $event)"
             />
           </label>
 
-          <label>
-            ステータス
-            <select
-              [value]="detail.status"
-              (focus)="activeLastDoneField.set(null)"
-              (change)="changeStatus(detail, $any($event.target).value)"
-            >
-              <option value="incomplete">未完了</option>
-              <option value="complete">完了</option>
-            </select>
-          </label>
+          <app-status-toggle
+            [isComplete]="detail.status === 'complete'"
+            (toggle)="activeLastDoneField.set(null); changeStatus(detail, $event ? 'complete' : 'incomplete')"
+          />
 
-          <label>
-            進捗
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              [value]="detail.progress ?? ''"
-              (focus)="activeLastDoneField.set('progress')"
-              (change)="saveProgress(detail, $any($event.target).value)"
-              [attr.aria-invalid]="progressError()"
-              [readonly]="save.isCompletionBusy(detail.id)"
-            />
-          </label>
+          <app-progress-slider
+            [value]="detail.progress"
+            [disabled]="save.isCompletionBusy(detail.id)"
+            (valueChange)="saveProgress(detail, $event)"
+          />
           @if (progressError()) {
             <p class="field-error">進捗は0〜100の整数で入力してください。</p>
           }
 
-          <label>
-            優先度
-            <select
-              [value]="detail.priority"
-              (focus)="activeLastDoneField.set(null)"
-              (change)="savePriority(detail, $any($event.target).value)"
-            >
-              <option value="none">なし</option>
-              <option value="priority">優先</option>
-              <option value="highest">最優先</option>
-            </select>
-          </label>
+          <app-priority-segment
+            [value]="detail.priority"
+            (valueChange)="activeLastDoneField.set(null); savePriority(detail, $event)"
+          />
 
           <div class="field-block">
             <span>予定時間</span>
@@ -287,7 +269,6 @@ import { TimeInputComponent } from './time-input.component';
       }
 
       input,
-      select,
       textarea {
         border: 1px solid #bcc8c6;
         border-radius: 6px;
@@ -403,8 +384,8 @@ export class TaskDetailPanelComponent {
     this.save.saveField(task.id, 'task_type', value);
   }
 
-  saveEventAt(task: TaskDetail, value: string): void {
-    this.save.saveField(task.id, 'event_at', value ? new Date(value).toISOString() : null);
+  saveEventAt(task: TaskDetail, value: string | null): void {
+    this.save.saveField(task.id, 'event_at', value);
   }
 
   changeStatus(task: TaskDetail, value: TaskStatus): void {
@@ -480,18 +461,6 @@ export class TaskDetailPanelComponent {
 
   contentValue(task: TaskDetail, field: TaskContentField): string {
     return task.task_contents?.[field] ?? '';
-  }
-
-  toLocalInputValue(value: string | null): string {
-    if (!value) {
-      return '';
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '';
-    }
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-    return local.toISOString().slice(0, 16);
   }
 
   private lastDoneOptions(): { update_last_done: boolean; tz_offset?: number } {

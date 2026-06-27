@@ -114,4 +114,21 @@ describe('TaskListService', () => {
     expect(service.selectedTask()).toBeNull();
     expect(service.isPanelOpen()).toBeFalse();
   });
+
+  it('updateTaskLocally() と rollbackTaskLocally() は子孫タスクと選択中詳細へ反映する', () => {
+    const child = taskNode({ id: 'child-1', task_name: '子', parent_id: 'task-1' });
+    const root = taskNode({ children: [child] });
+    service.tasks.set([root]);
+    service.selectedTask.set(taskDetail({ id: 'child-1', task_name: '子' }));
+
+    service.updateTaskLocally('child-1', 'task_name', '更新後');
+
+    expect(service.tasks()[0].children[0].task_name).toBe('更新後');
+    expect(service.selectedTask()?.task_name).toBe('更新後');
+
+    service.rollbackTaskLocally('child-1', 'task_name', '子');
+
+    expect(service.tasks()[0].children[0].task_name).toBe('子');
+    expect(service.selectedTask()?.task_name).toBe('子');
+  });
 });

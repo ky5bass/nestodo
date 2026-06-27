@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 
 import { TaskDetail } from '../task-detail/task-detail.model';
 import { TaskTreeNode } from './task-list.model';
@@ -8,6 +8,7 @@ import { TaskTreeNode } from './task-list.model';
 export class TaskListService {
   readonly tasks = signal<TaskTreeNode[]>([]);
   readonly selectedTask = signal<TaskDetail | null>(null);
+  readonly selectedTaskId = computed(() => this.selectedTask()?.id ?? null);
   readonly isPanelOpen = signal(false);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -50,5 +51,46 @@ export class TaskListService {
   closePanel(): void {
     this.isPanelOpen.set(false);
     this.selectedTask.set(null);
+  }
+
+  updateTaskLocally(taskId: string, field: string, value: unknown): void {
+    this.patchTaskLocally(taskId, { [field]: value } as Partial<TaskTreeNode>);
+  }
+
+  rollbackTaskLocally(taskId: string, field: string, previousValue: unknown): void {
+    this.patchTaskLocally(taskId, { [field]: previousValue } as Partial<TaskTreeNode>);
+  }
+
+  mergeTaskLocally(task: TaskDetail): void {
+    this.patchTaskLocally(task.id, task as Partial<TaskTreeNode>);
+  }
+
+  private patchTaskLocally(taskId: string, patch: Partial<TaskTreeNode>): void {
+    this.tasks.update((tasks) => this.patchTree(tasks, taskId, patch));
+    const selected = this.selectedTask();
+    if (selected?.id === taskId) {
+      this.selectedTask.set({ ...selected, ...patch });
+    }
+  }
+
+  private patchTree(
+    nodes: TaskTreeNode[],
+    taskId: string,
+    patch: Partial<TaskTreeNode>
+  ): TaskTreeNode[] {
+    let changed = false;
+    const next = nodes.map((node) => {
+      if (node.id === taskId) {
+        changed = true;
+        return { ...node, ...patch, children: patch.children ?? node.children };
+      }
+      const children = this.patchTree(node.children ?? [], taskId, patch);
+      if (children !== node.children) {
+        changed = true;
+        return { ...node, children };
+      }
+      return node;
+    });
+    return changed ? next : nodes;
   }
 }
