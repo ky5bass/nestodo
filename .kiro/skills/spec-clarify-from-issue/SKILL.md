@@ -1,6 +1,13 @@
 ---
-inclusion: manual
-description: GitHub Issue の内容をユーザーとの対話で具体化し、承認された spec 反映案を Issue に記録してセッションを終了する手順
+name: "spec-clarify-from-issue"
+description: >
+  GitHub Issue の内容をユーザーとの対話で具体化し、承認された spec 反映案を Issue にコメントとして記録するSkill。
+  使用タイミング: ユーザーが Issue をもとに spec を更新・新規作成したいが、Issue の内容が曖昧で spec に反映できる粒度に達していない場合に使用する。
+  トリガーキーワード（日本語）: spec具体化, Issue具体化, Issue を具体化, spec-clarify-from-issue。
+  トリガーキーワード（英語）: spec clarify from issue, clarify issue for spec。
+metadata:
+  version: "1.0"
+  author: "kiro"
 ---
 
 # Issue を具体化して承認内容を記録する手順

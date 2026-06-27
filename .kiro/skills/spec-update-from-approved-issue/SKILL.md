@@ -1,6 +1,13 @@
 ---
-inclusion: manual
-description: 新しいセッションで GitHub Issue の承認済み内容を読み、既存 spec の更新・新規 spec の作成・既存 spec のアーカイブを行って spec PR を作成する、または同じ手順で作成した spec PR のレビュー指摘へ対応する手順
+name: "spec-update-from-approved-issue"
+description: >
+  GitHub Issue の承認済みコメントを元に既存 spec の更新・新規 spec の作成・既存 spec のアーカイブを行い、spec PR を作成する。またはレビュー指摘に対応する。
+  使用タイミング: ユーザーが Issue の承認済み内容を spec に反映したい場合、または spec PR のレビュー指摘に対応したい場合に使用する。
+  トリガーキーワード（日本語）: spec-update-from-approved-issue, spec反映, specに反映, Issue を spec に反映, レビュー指摘に対応。
+  トリガーキーワード（英語）: spec update from approved issue, update spec from issue。
+metadata:
+  version: "1.0"
+  author: "kiro"
 ---
 
 # Issue から spec を更新・作成・アーカイブして PR を作成する手順

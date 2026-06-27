@@ -1,6 +1,14 @@
 ---
-inclusion: manual
-description: 120行を超えた既存 spec の要件・設計を再配置して spec 分解 PR を作成する、または同じ手順で作成した spec 分解 PR のレビュー指摘へ対応する手順
+name: "spec-split"
+description: >
+  120行を超えた既存specの要件・設計を複数specへ再配置し、spec分解PRを作成する。
+  また、作成したspec分解PRのレビュー指摘への対応も行う。
+  使用タイミング: specのrequirements.mdまたはdesign.mdが120行を超えた場合、またはspec分解PRのレビュー指摘に対応する場合に使用する。
+  トリガーキーワード（日本語）: spec分解, spec-split, specを分解, spec分割。
+  トリガーキーワード（英語）: spec split, split spec。
+metadata:
+  version: "1.0"
+  author: "kiro"
 ---
 
 # spec 分解手順

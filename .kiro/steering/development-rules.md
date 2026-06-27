@@ -36,14 +36,14 @@
 
 ## GitHub 操作ルール
 
-- GitHub 操作が必要な場合は `#github-operations` steering を参照すること
+- GitHub 操作が必要な場合は**必ず** `#github-operations` スキルを参照すること
 - GitHub MCP ツールは使用せず `gh` CLI を使用すること
 
 ## Issue 起点の spec 更新ルール
 
-- Issue をもとに spec を更新・新規作成・アーカイブする前に、`#spec-clarify-from-issue` で Issue の内容をユーザーとの対話で具体化すること
+- Issue をもとに spec を更新・新規作成・アーカイブする前に、`#spec-clarify-from-issue` スキルで Issue の内容をユーザーとの対話で具体化すること
 - 対話では原則として一度に 1 つの論点を質問し、推奨案と簡潔な理由を示して、ユーザーが白紙から考える負荷を減らすこと
 - 未確定事項が解消したら、対話内容を統合した spec 反映案を提示し、ユーザーから明示的な承認を得ること
 - 承認された spec 反映案を Issue にコメントしたら、そのセッションでは spec を変更せず終了すること
-- spec 更新は新しいセッションで `#spec-update-from-approved-issue` を実行し、過去の会話ではなく Issue 内の最新の承認済みコメントを今回の変更内容の正とすること
+- spec 更新は新しいセッションで `#spec-update-from-approved-issue` スキルを実行し、過去の会話ではなく Issue 内の最新の承認済みコメントを今回の変更内容の正とすること
 - 承認済みコメントの範囲を超える判断が必要になった場合は spec の編集を止め、そのセッションでは具体化を続けず、別の新しいセッションで再具体化すること
