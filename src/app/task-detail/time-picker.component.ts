@@ -10,11 +10,11 @@ export interface TimePickerValue {
   standalone: true,
   template: `
     <div class="time-picker" aria-label="時刻選択">
-      <button type="button" (click)="changeHours(1)" [disabled]="hours >= HOUR_MAX">+</button>
-      <button type="button" (click)="changeMinutes(5)" [disabled]="minutes >= MINUTE_MAX">+</button>
+      <button type="button" (click)="changeHours(1)" [disabled]="hours >= HOUR_MAX" aria-label="時間を1時間増やす">時 +</button>
+      <button type="button" (click)="changeMinutes(5)" [disabled]="minutes >= MINUTE_MAX" aria-label="分を5分増やす">分 +</button>
       <strong>{{ pad(hours) }}:{{ pad(minutes) }}</strong>
-      <button type="button" (click)="changeHours(-1)" [disabled]="hours <= HOUR_MIN">-</button>
-      <button type="button" (click)="changeMinutes(-5)" [disabled]="minutes <= MINUTE_MIN">-</button>
+      <button type="button" (click)="changeHours(-1)" [disabled]="hours <= HOUR_MIN" aria-label="時間を1時間減らす">時 -</button>
+      <button type="button" (click)="changeMinutes(-5)" [disabled]="minutes <= MINUTE_MIN" aria-label="分を5分減らす">分 -</button>
     </div>
   `,
   styles: [
@@ -23,7 +23,7 @@ export interface TimePickerValue {
         align-items: center;
         display: grid;
         gap: 6px;
-        grid-template-columns: repeat(2, 40px) 1fr repeat(2, 40px);
+        grid-template-columns: repeat(2, 52px) 1fr repeat(2, 52px);
       }
 
       button {
@@ -32,7 +32,9 @@ export interface TimePickerValue {
         border-radius: 6px;
         cursor: pointer;
         font: inherit;
+        font-size: 0.82rem;
         height: 34px;
+        padding: 0 4px;
       }
 
       button:disabled {

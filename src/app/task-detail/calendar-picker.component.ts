@@ -138,12 +138,11 @@ export class CalendarPickerComponent {
   }
 
   private emitFromParts(date: string, hours: number, minutes: number): void {
-    const next = new Date(`${date}T${this.pad(hours)}:${this.pad(minutes)}:00`);
-    this.emitLocal(next);
+    this.valueChange.emit(`${date}T${this.pad(hours)}:${this.pad(minutes)}:00`);
   }
 
   private emitLocal(date: Date): void {
-    this.valueChange.emit(date.toISOString());
+    this.valueChange.emit(this.formatLocalDateTime(date));
   }
 
   private localParts(): { date: string; hours: number; minutes: number } {
@@ -151,12 +150,19 @@ export class CalendarPickerComponent {
     if (!this.value || Number.isNaN(date.getTime())) {
       date.setHours(0, 0, 0, 0);
     }
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
     return {
-      date: local.toISOString().slice(0, 10),
+      date: this.formatLocalDate(date),
       hours: date.getHours(),
       minutes: Math.floor(date.getMinutes() / 5) * 5
     };
+  }
+
+  private formatLocalDateTime(date: Date): string {
+    return `${this.formatLocalDate(date)}T${this.pad(date.getHours())}:${this.pad(date.getMinutes())}:00`;
+  }
+
+  private formatLocalDate(date: Date): string {
+    return `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())}`;
   }
 
   private pad(value: number): string {
