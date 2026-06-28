@@ -13,8 +13,8 @@ export interface TimePickerValue {
       <button type="button" (click)="changeHours(-1)" [disabled]="hours <= HOUR_MIN" aria-label="時間を1時間減らす">時 -</button>
       <button type="button" (click)="changeMinutes(-5)" [disabled]="minutes <= MINUTE_MIN" aria-label="分を5分減らす">分 -</button>
       <strong>{{ pad(hours) }}:{{ pad(minutes) }}</strong>
-      <button type="button" (click)="changeHours(1)" [disabled]="hours >= HOUR_MAX" aria-label="時間を1時間増やす">時 +</button>
       <button type="button" (click)="changeMinutes(5)" [disabled]="minutes >= MINUTE_MAX" aria-label="分を5分増やす">分 +</button>
+      <button type="button" (click)="changeHours(1)" [disabled]="hours >= HOUR_MAX" aria-label="時間を1時間増やす">時 +</button>
     </div>
   `,
   styles: [

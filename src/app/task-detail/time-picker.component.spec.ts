@@ -56,6 +56,6 @@ describe('TimePickerComponent', () => {
       fixture.nativeElement.querySelectorAll('button')
     ).map((button) => button.textContent?.trim());
 
-    expect(labels).toEqual(['時 -', '分 -', '時 +', '分 +']);
+    expect(labels).toEqual(['時 -', '分 -', '分 +', '時 +']);
   });
 });
