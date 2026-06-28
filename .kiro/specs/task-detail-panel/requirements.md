@@ -138,6 +138,8 @@
 5. Time_Pickerの時間（0〜23）・分（0〜55）は端で止まりループしないこと
 6. event_atのデフォルト時刻は00:00とすること
 7. 日付・時刻選択後、Detail_Panelは即座にDetail_Save_Service経由でevent_atを保存すること
+8. event_atはユーザーのローカル日時（壁時計日時）として扱い、フロントエンドは `YYYY-MM-DDTHH:mm:ss` 形式（タイムゾーン情報なし）で送信すること。toISOString()によるUTC変換や、tz_offsetによる時刻補正は行わないこと
+9. 保存成功レスポンスを受信した際、Calendar_Picker / Time_Pickerおよびevent_at表示欄の時刻がユーザーが選択した値から変わらないこと
 
 ### Requirement 11: ステータストグルスイッチUI
 

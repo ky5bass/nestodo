@@ -95,6 +95,7 @@ export class DetailSaveService {
     }
     const previous = this.snapshot(taskId);
     this.patchTask(taskId, { [field]: value });
+    this.taskList.updateTaskLocally(taskId, field, value);
     const save: PendingSave = { taskId, field, kind: 'field', value, previous, options };
     this.schedule(save);
   }
@@ -106,6 +107,9 @@ export class DetailSaveService {
     }
     const previous = this.snapshot(taskId);
     this.patchTask(taskId, values);
+    Object.entries(values).forEach(([field, value]) => {
+      this.taskList.updateTaskLocally(taskId, field, value);
+    });
     const save: PendingSave = {
       taskId,
       field: Object.keys(values).sort().join('+'),
@@ -211,11 +215,14 @@ export class DetailSaveService {
     (request as Observable<TaskDetail | TaskUpdateResult>).subscribe({
         next: (response: TaskDetail | TaskUpdateResult) => {
           if (save.kind === 'content') {
-            this.setTask(response as TaskDetail);
+            const task = response as TaskDetail;
+            this.setTask(task);
+            this.taskList.mergeTaskLocally(task);
           } else {
             const result = response as TaskUpdateResult;
             if (result.task) {
               this.setTask(result.task);
+              this.taskList.mergeTaskLocally(result.task);
             }
           }
           this.pending.delete(key);
@@ -318,6 +325,19 @@ export class DetailSaveService {
 
   private rollback(save: PendingSave): void {
     this.restorePrevious(save);
+    if (save.kind === 'field' && save.previous) {
+      const values =
+        save.value && typeof save.value === 'object' && !Array.isArray(save.value)
+          ? (save.value as Record<string, unknown>)
+          : { [save.field]: save.value };
+      Object.keys(values).forEach((field) => {
+        this.taskList.rollbackTaskLocally(
+          save.taskId,
+          field,
+          save.previous?.[field as keyof TaskDetail]
+        );
+      });
+    }
   }
 
   private restorePrevious(state: { taskId: string; previous: TaskDetail | null }): void {

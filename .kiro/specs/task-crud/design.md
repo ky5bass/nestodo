@@ -26,14 +26,14 @@ class CreateTaskInput(BaseModel):
     task_type: Literal['TODO', 'SCHEDULE']
     sort_order: float           # 浮動小数点
     parent_id: UUID | None = None
-    event_at: datetime | None = None  # Root_Taskは必須
+    event_at: datetime | None = None  # Root_Taskは必須。ローカル日時（壁時計日時）。UTC変換不要。
 
 class UpdateTaskInput(BaseModel):
     task_name: str | None = None
     progress: int | None = None       # 0〜100
     status: Literal['incomplete', 'complete'] | None = None
     priority: Literal['none', 'priority', 'highest'] | None = None
-    event_at: datetime | None = None
+    event_at: datetime | None = None  # ローカル日時（壁時計日時）。タイムゾーン情報なし。フロントからは 'YYYY-MM-DDTHH:mm:ss' 形式で受信する。UTC変換・tz_offsetによる時刻補正は行わない。
     parent_id: str | None = None
     estimated_time: int | None = None
     actual_time: int | None = None
@@ -60,7 +60,7 @@ PostgreSQL ENUM: task_type_enum(`'TODO'|'SCHEDULE'`)、task_status_enum(`'incomp
 | progress | SMALLINT | NULL, 0〜100 |
 | priority | PostgreSQL ENUM (priority_enum) | DEFAULT 'none' |
 | sort_order | FLOAT | NOT NULL |
-| event_at | TIMESTAMP | Root_Task: NOT NULL |
+| event_at | TIMESTAMP | Root_Task: NOT NULL。ローカル日時（壁時計日時）として保存。UTC変換・tz_offsetによる補正は行わない |
 | estimated_time | INT | NULL（分単位） |
 | actual_time | INT | NULL（分単位） |
 | preview | TEXT | NULL |
@@ -101,6 +101,10 @@ PostgreSQL ENUM: task_type_enum(`'TODO'|'SCHEDULE'`)、task_status_enum(`'incomp
 ### Property 5: Root_Task event_at不変条件の全経路保証
 **Validates: Requirements 1.2, 3.5, 3.6, 3.7**
 *For any* create/update/move操作において、結果がRoot_Task（parent_id=null）となるタスクのevent_atがnullなら拒否。降格時はevent_at保持。batch（一括編集）経路での同不変条件は`batch-edit-mode` spec（Property 10）が担保する。
+
+### Property 6: event_atローカル日時の保存不変条件
+**Validates: Requirements 3.8**
+*For any* event_atの保存・取得操作において、保存された値と取得された値は同一であること。UTC変換やtz_offsetによる時刻補正が介在しないこと。tz_offsetはevent_atの値に影響を与えないこと。
 
 ## Error Handling
 | エラー種別 | 条件 | レスポンス |

@@ -114,4 +114,54 @@ describe('TaskListService', () => {
     expect(service.selectedTask()).toBeNull();
     expect(service.isPanelOpen()).toBeFalse();
   });
+
+  it('updateTaskLocally() と rollbackTaskLocally() は子孫タスクと選択中詳細へ反映する', () => {
+    const child = taskNode({ id: 'child-1', task_name: '子', parent_id: 'task-1' });
+    const root = taskNode({ children: [child] });
+    service.tasks.set([root]);
+    service.selectedTask.set(taskDetail({ id: 'child-1', task_name: '子' }));
+
+    service.updateTaskLocally('child-1', 'task_name', '更新後');
+
+    expect(service.tasks()[0].children[0].task_name).toBe('更新後');
+    expect(service.selectedTask()?.task_name).toBe('更新後');
+
+    service.rollbackTaskLocally('child-1', 'task_name', '子');
+
+    expect(service.tasks()[0].children[0].task_name).toBe('子');
+    expect(service.selectedTask()?.task_name).toBe('子');
+  });
+
+  it('mergeTaskLocally() はサーバーレスポンスの children で一覧ツリーを上書きしない', () => {
+    const grandchild = taskNode({
+      id: 'grandchild-1',
+      task_name: '孫',
+      parent_id: 'child-1'
+    });
+    const child = taskNode({
+      id: 'child-1',
+      task_name: '子',
+      parent_id: 'task-1',
+      children: [grandchild]
+    });
+    const root = taskNode({ children: [child] });
+    service.tasks.set([root]);
+    service.selectedTask.set(taskDetail({ id: 'task-1', task_name: '親' }));
+
+    service.mergeTaskLocally(
+      taskDetail({
+        id: 'task-1',
+        task_name: '親 更新後',
+        priority: 'highest',
+        children: []
+      })
+    );
+
+    const updatedRoot = service.tasks()[0];
+    expect(updatedRoot.task_name).toBe('親 更新後');
+    expect(updatedRoot.priority).toBe('highest');
+    expect(updatedRoot.children[0].id).toBe('child-1');
+    expect(updatedRoot.children[0].children[0].id).toBe('grandchild-1');
+    expect(service.selectedTask()?.task_name).toBe('親 更新後');
+  });
 });

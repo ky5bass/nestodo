@@ -45,7 +45,7 @@ export class TaskTypeRadioComponent {
 ```typescript
 @Component({ selector: 'app-calendar-picker', standalone: true })
 export class CalendarPickerComponent {
-  @Input() value: string | null; // ISO datetime string
+  @Input() value: string | null; // ローカル日時文字列 'YYYY-MM-DDTHH:mm:ss'（タイムゾーン情報なし。UTC instant ではない）
   @Output() valueChange = new EventEmitter<string | null>();
 
   readonly SHORTCUTS = [
@@ -128,6 +128,7 @@ export class DetailSaveService {
 
 - `saveField`: Optimistic UIで即座にUI反映 → デバウンス(300ms) → API送信 → エラー時ロールバック
 - 同一フィールドへの連続編集はデバウンスにより最新値のみ送信
+- **event_at送信仕様**: event_atフィールドの保存時、値は `YYYY-MM-DDTHH:mm:ss` 形式のローカル日時文字列として送信する。`toISOString()`やUTC変換は使用しない。`tz_offset`はevent_atの時刻変換には使用しない（`tz_offset`はlast_done_at更新・Day_Boundary・完了処理の「本日」判定専用）
 - progress/actual_time編集時にupdate_last_done=trueの場合、tz_offset（`new Date().getTimezoneOffset()`の値）を付与して送信
 - **例外**: Completion_Trigger（status=完了 or progress=100）の場合はOptimistic UIを適用せず、batch-completion-uiで定義されたサーバー確認フローに委譲する。この際もtz_offsetを付与する
 
@@ -224,6 +225,12 @@ interface TaskContentUpdateRequest {
 
 **Validates: Requirements 10.2, 10.3**
 
+### Property 7: event_atローカル日時の保存・表示不変条件
+
+*任意の*日付・時刻選択操作に対し、フロントエンドが送信するevent_atの値は`YYYY-MM-DDTHH:mm:ss`形式のタイムゾーン情報なし文字列であり、サーバーからの保存成功レスポンスに含まれるevent_atの値と同一であること。また、レスポンス反映後のUI表示時刻がユーザーの選択値から変化しないこと。tz_offsetはevent_atの値の変換に使用されないこと。
+
+**Validates: Requirements 10.8, 10.9**
+
 ## Error Handling
 
 | エラー種別 | 対応 |
@@ -244,5 +251,6 @@ interface TaskContentUpdateRequest {
 - Property 4: ランダムな編集シーケンス生成後、送信値が最終値のみであることを検証
 - Property 5: ランダムな操作シーケンス（増減連打）でTime_Pickerの時間(0-23)・分(0-55)が範囲外にならないことを検証
 - Property 6: ランダムな基準日に対し、各ショートカットボタンが正しいオフセット日を設定することを検証
+- Property 7: ランダムな日付時刻選択に対し、送信値が`YYYY-MM-DDTHH:mm:ss`形式であること、レスポンス値と一致すること、tz_offsetがevent_at変換に使用されないことを検証
 
 **結合テスト**: API呼び出しのモックを用いたDetailSaveServiceのE2Eフロー検証。
