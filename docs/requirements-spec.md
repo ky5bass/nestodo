@@ -40,7 +40,7 @@ PostgreSQL ENUM: `task_type_enum`(`'TODO'|'SCHEDULE'`)、`task_status_enum`(`'in
 | progress | SMALLINT | NULL, 0〜100 |
 | priority | priority_enum | DEFAULT 'none' |
 | sort_order | FLOAT | NOT NULL |
-| event_at | TIMESTAMP | Root_Task: NOT NULL |
+| event_at | TIMESTAMP | Root_Task: NOT NULL。ユーザーのローカル日時（壁時計日時）として扱い、UTC変換やタイムゾーンオフセット補正は行わない |
 | estimated_time | INT | NULL（分単位） |
 | actual_time | INT | NULL（分単位） |
 | preview | TEXT | NULL |
