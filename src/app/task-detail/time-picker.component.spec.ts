@@ -48,4 +48,14 @@ describe('TimePickerComponent', () => {
       { numRuns: 100 }
     );
   });
+
+  it('減算ボタンを左、加算ボタンを右に配置する', () => {
+    fixture.detectChanges();
+
+    const labels = Array.from<HTMLElement>(
+      fixture.nativeElement.querySelectorAll('button')
+    ).map((button) => button.textContent?.trim());
+
+    expect(labels).toEqual(['時 -', '分 -', '時 +', '分 +']);
+  });
 });
