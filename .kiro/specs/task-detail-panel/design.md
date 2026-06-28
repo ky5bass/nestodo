@@ -1,6 +1,6 @@
 # 設計ドキュメント: task-detail-panel
 
-**バージョン: v1.1**
+**バージョン: v1.2**
 
 ## Overview
 

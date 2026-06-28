@@ -1,6 +1,6 @@
 # Requirements Document
 
-**バージョン: v1.1**
+**バージョン: v1.2**
 
 ## Meta
 
