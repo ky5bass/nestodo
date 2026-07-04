@@ -47,7 +47,7 @@ PR: #XX
 15. `git add .kiro/specs/<spec名>/tasks.md` でステージし、`git commit -m "docs: <spec名> の tasks.md を作成"` で `main` 上に管理用コミットを作成する
 16. `git push origin main` で管理用コミットをリモートの `main` に反映する。push に失敗した場合は後続の実装依頼へ進まず、失敗理由をユーザーに報告する
 17. `git status --short` で作業ツリーが clean であることを確認する
-18. 最終出力に、Codex に実装を依頼するためのプロンプトをコードブロックで出力する
+18. 最終出力に、Kiro の実装フェーズオーケストレーターを開始するためのプロンプトをコードブロックで出力する
 
 ## tasks.md 作成ルール
 
@@ -58,15 +58,15 @@ PR: #XX
 - タスクの完了条件は、コード変更だけでなくテスト・検証まで含める
 - 複数 spec を対象にする場合は、spec ごとに tasks.md を作成し、依存関係を明記する
 
-## 最終出力に含める Codex 依頼プロンプト
+## 最終出力に含める実装フェーズ開始プロンプト
 
 tasks.md 作成後、最終出力の最後に次のプロンプトを出力する。対象 spec は実際のディレクトリ名で列挙し、プレースホルダを残さない。
 
 ````markdown
-Codex への実装依頼プロンプト:
+実装フェーズ開始プロンプト:
 
 ```text
-$task-implementer 以下の spec について tasks.md のタスクを実装してください:
+#implementation-orchestrator 以下の spec の実装フェーズを開始してください:
 - `.kiro/specs/<具体的なspec名>/`
 ```
 ````

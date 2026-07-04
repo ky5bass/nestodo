@@ -57,7 +57,7 @@ docker compose -f compose.prod.yml up -d --build
 ## 1機能の開発フロー
 
 ```
-Issue 作成 → Issue の具体化・承認・記録 → 新しいセッションで spec PR 作成 → spec PR レビュー・マージ → tasks.md 作成 → 実装 PR 作成 → 実装 PR レビュー・マージ → spec 完了処理・Issue クローズ → Wiki 同期
+Issue 作成 → Issue の具体化・承認・記録 → 新しいセッションで spec PR 作成 → spec PR レビュー・マージ → tasks.md 作成 → 実装フェーズ自動化 → 人間の動作確認・マージ判断 → spec 完了処理・Issue クローズ → Wiki 同期
 ```
 
 ### ステップ詳細
@@ -142,36 +142,24 @@ PR: #XX
 
 tasks.md は Codex が実装を進めるためのタスクリスト。実装完了後は Kiro の spec 完了処理で削除される。
 
-#### 6. 実装
-**担当: Codex**
+#### 6. 実装フェーズ自動化
+**担当: Kiro（司令塔）・Codex（実装）・Claude Code（レビュー）**
 
-Codex に以下のように依頼する:
+Kiro に以下のように依頼する:
 
 ```
-$task-implementer 以下の spec について tasks.md のタスクを実装してください:
+#implementation-orchestrator 以下の spec の実装フェーズを開始してください:
 - `.kiro/specs/<spec名>/`
 ```
 
-#### 7. 実装 PR レビュー・マージ
-**担当: 人間（レビュー）・Claude Code（任意：コード品質・spec 整合性チェック）**
+詳細は `.kiro/skills/implementation-orchestrator/SKILL.md` に従う。Claude Code の `承認可能` 判定は「人間の動作確認へ進めてよい」という意味であり、「即マージ可」ではない。
 
-実装 PR をレビューしてマージする。
+#### 7. 人間の動作確認・マージ判断
+**担当: 人間（動作確認・マージ判断）・Kiro（必要時の再開）**
 
-人間がレビューする前に Claude Code へ以下を依頼すると、`/spec-impl-checker` スキルで spec との整合性とコード品質を確認できる:
+人間は実装 PR を対象に動作確認する。動作確認 OK の場合、人間が最終的なレビューとマージ可否を判断する。
 
-```
-/spec-impl-checker コード PR #XX をレビューしてください。
-```
-
-指摘が投稿された場合は、Codex に同じ `$task-implementer` スキルを再度使って対応させ、その後 Claude Code に同じ `/spec-impl-checker` スキルを再度使って確認させる:
-
-```text
-$task-implementer 実装 PR #XX のレビュー指摘に対応してください。
-```
-
-```text
-/spec-impl-checker 実装 PR #XX のレビュー指摘対応を再確認してください。
-```
+動作確認 NG の場合、spec 通りに直せばよい問題なら、Kiro 経由で実装フェーズ自動化を再開する。spec 自体の更新が必要な場合は、実装フェーズを止め、変更単位として新しい Issue を作成してから Kiro の spec 更新フローへ戻す。spec 更新にかかる編集は Kiro に依頼し、更新後に `tasks.md` 作成からやり直す。
 
 #### 8. spec 完了処理
 **担当: Kiro**
@@ -279,7 +267,7 @@ spec 分解 PR #XX のレビュー指摘対応を再確認してください。
 - spec に記載のない抽象化や機能を勝手に追加しない設定になっている
 
 ### Claude Code
-- **いつ使う**: ステップ4（spec の品質チェック）とステップ7（コード品質・spec 整合性のレビュー補助）。必須ではなく任意
+- **いつ使う**: ステップ4（spec の品質チェック）とステップ6（実装 PR のコード品質・spec 整合性レビュー）
 - **spec チェック**: `development-rules.md` のルール準拠・設計理由の記述品質の確認が得意
 - **コードレビュー**: spec と実装の整合性、セキュリティ・エラーハンドリング・堅牢性など、Codex が見落としがちな横断的な品質観点を担う
 - **開発手法の改善**: ワークフローの非効率・ルールの矛盾・ツール設定の改善案を相談できる。`CONTRIBUTING.md` や `development-rules.md` の改訂もここに依頼する
