@@ -15,6 +15,12 @@ metadata:
 
 この steering は、既存 spec の `requirements.md` または `design.md` が 120 行を超えた場合に、既存の要件・設計を複数 spec へ再配置し、spec 分解のみを含む PR を作成するときに使用する。
 
+## 分解基準
+
+- spec ファイルは、`requirements.md` と `design.md` をそれぞれ独立して数え、各ファイル単体で基本 100 行程度、最大 150 行以内に収める
+- `requirements.md` または `design.md` のいずれかが 120 行を超えた場合は、機能単位での分解を検討する
+- 分解後の各 spec の `requirements.md` と `design.md` は、それぞれ 150 行以内に収める
+
 ## 依頼形式
 
 ユーザーは次のように依頼する:
