@@ -27,5 +27,9 @@
 ## 検証
 
 - spec ごとに以下を列挙:
-  - `.kiro/specs/<!-- spec名 -->/requirements.md`: <!-- 行数 --> 行
-  - `.kiro/specs/<!-- spec名 -->/design.md`: <!-- 行数 --> 行
+  - `.kiro/specs/<!-- spec名 -->/requirements.md`:
+    - <!-- Issue の承認済み内容から反映した要件・受け入れ基準 -->
+    - <!-- 反映対象外にした内容があれば、その理由 -->
+  - `.kiro/specs/<!-- spec名 -->/design.md`:
+    - <!-- Issue の承認済み内容から反映した設計判断・理由 -->
+    - <!-- requirements.md との整合確認結果 -->

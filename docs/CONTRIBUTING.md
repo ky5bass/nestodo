@@ -133,7 +133,10 @@ spec PR #XX のレビュー指摘対応を再確認してください。
 spec PR マージ後、Kiro に以下のように依頼する:
 
 ```
-以下の spec について tasks.md を作成してください:
+#task-create-from-merged-spec 以下の spec PR について tasks.md を作成してください:
+PR: #XX
+
+対象 spec:
 - `.kiro/specs/<spec名>/`
 ```
 
@@ -277,7 +280,7 @@ spec 分解 PR #XX のレビュー指摘対応を再確認してください。
 
 ### Claude Code
 - **いつ使う**: ステップ4（spec の品質チェック）とステップ7（コード品質・spec 整合性のレビュー補助）。必須ではなく任意
-- **spec チェック**: `development-rules.md` のルール準拠・設計理由の記述品質・行数制限の確認が得意
+- **spec チェック**: `development-rules.md` のルール準拠・設計理由の記述品質の確認が得意
 - **コードレビュー**: spec と実装の整合性、セキュリティ・エラーハンドリング・堅牢性など、Codex が見落としがちな横断的な品質観点を担う
 - **開発手法の改善**: ワークフローの非効率・ルールの矛盾・ツール設定の改善案を相談できる。`CONTRIBUTING.md` や `development-rules.md` の改訂もここに依頼する
 - **やらないこと**: 機能の実装主導（Codex が担当）・spec 完了処理（Kiro が担当）
