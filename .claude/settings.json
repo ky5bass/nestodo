@@ -18,11 +18,11 @@
       "Bash(docker compose --profile test run --rm backend-test *)",
       "Bash(docker compose --profile test run --rm frontend-test *)",
       "Bash(npm run *)",
-      "Bash(ng *)",
+      "Bash(ng build *)",
+      "Bash(ng test *)",
+      "Bash(ng lint *)",
       "Bash(cat *)",
-      "Bash(sed *)",
-      "Bash(ls *)",
-      "Bash(node *)"
+      "Bash(ls *)"
     ]
   }
 }
