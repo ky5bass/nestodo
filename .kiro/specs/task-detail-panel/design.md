@@ -1,6 +1,6 @@
 # 設計ドキュメント: task-detail-panel
 
-**バージョン: v1.2**
+**バージョン: v1.3**
 
 ## Overview
 
@@ -144,11 +144,15 @@ export class TimeInputComponent {
   readonly HOUR_STEPS = [1, 2, 3, 4, 6];
   readonly DAY_STEPS = [1, 2, 3, 4, 5, 7, 10, 15, 20];
   
-  snapToNearest(input: number, steps: number[]): number; // 最近傍離散値を返す
+  snapToNearest(input: number, steps: number[]): number; // 入力が0の場合は0を返す。1以上の場合は最近傍離散値を返す
 }
 ```
 
 **設計判断**: スライダーの離散値を定数配列で保持し、`snapToNearest`を純粋関数として実装する。テスト容易性とロジックの明確化のためである。
+
+**設計判断（0入力対応）**: 0入力時はスナップ処理をバイパスして0をそのまま返す設計とした。各スライダーの離散値配列（MINUTE_STEPS, HOUR_STEPS, DAY_STEPS）に0は含まれていないため、スナップすると最小値（5, 1, 1）に丸められてしまい、ユーザーの意図（0分/0時間/0日）を表現できなくなるためである。バックエンドは既に `ge=0` で0を許容しているため、バックエンド変更は不要である。
+
+**設計判断（バリデーション変更）**: テキストボックスのバリデーションを「1以上の整数」から「0以上の整数」に変更する。業務上データの扱いとの乖離を解消するための要望を受けたためである（Issue #26）。0入力時のスライダー位置は先頭（index=0）に留まる。
 
 ### RevertModalComponent
 
@@ -197,7 +201,7 @@ interface TaskContentUpdateRequest {
 
 ### Property 2: Time_Inputの最近傍スナップ
 
-*任意の*正の整数入力に対し、`snapToNearest`関数は離散値配列内で入力値に最も近い値を返すこと。等距離の場合は小さい方を返すこと。
+*任意の*0以上の整数入力に対し、`snapToNearest`関数は入力が0の場合は0をそのまま返し、1以上の場合は離散値配列内で入力値に最も近い値を返すこと。等距離の場合は小さい方を返すこと。
 
 **Validates: Requirements 5.6**
 
@@ -246,7 +250,7 @@ interface TaskContentUpdateRequest {
 **プロパティテスト**: [fast-check](https://github.com/dubzzz/fast-check)を使用し、上記6つの正しさの性質を各100回以上のランダム入力で検証。
 
 - Property 1: ランダムなprogress値(0-100)設定後のstatus状態を検証
-- Property 2: ランダムな正整数に対するsnapToNearestの戻り値を検証
+- Property 2: ランダムな0以上の整数に対し、0入力時は0を返すこと、1以上の入力時はsnapToNearestが最近傍離散値を返すことを検証
 - Property 3: Completion_Triggerを除くランダムなフィールド×値の組み合わせで成功/失敗時のUI状態を検証
 - Property 4: ランダムな編集シーケンス生成後、送信値が最終値のみであることを検証
 - Property 5: ランダムな操作シーケンス（増減連打）でTime_Pickerの時間(0-23)・分(0-55)が範囲外にならないことを検証
