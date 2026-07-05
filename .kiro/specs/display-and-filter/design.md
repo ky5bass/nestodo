@@ -2,7 +2,7 @@
 
 ## Meta
 
-- **バージョン**: v1.2
+- **バージョン**: v1.3
 
 ## Overview
 
@@ -62,8 +62,12 @@ export class TaskListService {
 export class TaskRowComponent {
   @Input() node: TaskTreeNode;
   @Input() depth: number;
+
+  formatMinutes(value: number | null): string; // nullなら'-'、0なら'0m'、1以上なら適切な単位表示
 }
 ```
+
+**設計判断（0値表示）**: `formatMinutes` は値が0のとき `0m` と表示し、nullのとき `-` と表示する設計とした。0は「予定/実績が0分と明示的に設定された」状態であり、nullは「未入力」状態であるため、ユーザーが両者を区別できるよう異なる表示にする。この変更はIssue #26で業務上のデータの扱いとの乖離を解消するための要望を受けたためである。
 
 ## Data Models
 
@@ -131,7 +135,7 @@ GET /api/tasks?filtered=true&tz_offset=-540
 
 *任意の*兄弟タスクリストにおいて、フィルター後の表示順がsort_orderの昇順を維持すること。
 
-**Validates: Requirements 1.6**
+**Validates: Requirements 1.7**
 
 ### Property 7: パネルトグル状態の整合性
 
@@ -145,6 +149,12 @@ GET /api/tasks?filtered=true&tz_offset=-540
 
 **Validates: Requirements 7.1, 7.2, 7.3**
 
+### Property 9: formatMinutesの0値・null値の区別
+
+*任意の*`number | null`型の入力に対し、`formatMinutes`関数は入力が0の場合は `0m` を返し、入力がnullの場合は `-` を返すこと。0とnullは常に異なる表示結果となること。
+
+**Validates: Requirements 1.3**
+
 ## Error Handling
 
 | エラー種別 | 条件 | レスポンス |
@@ -157,8 +167,8 @@ GET /api/tasks?filtered=true&tz_offset=-540
 
 ## Testing Strategy
 
-**プロパティテスト**: hypothesisを使用し、Property 1〜6をバックエンドで各100回以上検証。fast-checkを使用し、Property 7をフロントエンドで100回以上検証。タグ: `Feature: display-and-filter, Property N: {text}`
+**プロパティテスト**: hypothesisを使用し、Property 1〜6をバックエンドで各100回以上検証。fast-checkを使用し、Property 7〜9をフロントエンドで各100回以上検証。タグ: `Feature: display-and-filter, Property N: {text}`
 
-**ユニットテスト**: Priority→CSS classマッピング、preview表示/非表示の条件分岐、Escキー/Xボタンによるパネル閉じ。Angular TestBed + pytest使用。
+**ユニットテスト**: Priority→CSS classマッピング、preview表示/非表示の条件分岐、Escキー/Xボタンによるパネル閉じ、formatMinutesの境界値（0, null, 正の値）。Angular TestBed + pytest使用。
 
 **結合テスト**: フィルター付きAPI呼び出しの正常系（ツリー構造維持確認）、タイムゾーン境界値。testcontainersでPostgreSQLコンテナを使用。
