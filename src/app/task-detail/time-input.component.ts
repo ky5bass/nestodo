@@ -4,6 +4,9 @@ const MINUTES_PER_HOUR = 60;
 const MINUTES_PER_DAY = 480;
 
 export function snapToNearest(input: number, steps: readonly number[]): number {
+  if (input === 0) {
+    return 0;
+  }
   return steps.reduce((nearest, step) => {
     const currentDistance = Math.abs(input - step);
     const nearestDistance = Math.abs(input - nearest);
@@ -25,14 +28,14 @@ export function snapToNearest(input: number, steps: readonly number[]): number {
           <input
             type="range"
             min="0"
-            [max]="unit.steps.length - 1"
+            [max]="unit.steps.length"
             [value]="unit.index"
             (input)="onSlider(unit.key, $any($event.target).value)"
           />
           <input
             class="number-input"
             type="number"
-            min="1"
+            min="0"
             step="1"
             [value]="unit.value"
             (input)="onText(unit.key, $any($event.target).value)"
@@ -41,7 +44,7 @@ export function snapToNearest(input: number, steps: readonly number[]): number {
         </label>
       }
       @if (errorKey()) {
-        <p class="field-error">1以上の整数を入力してください。</p>
+        <p class="field-error">0以上の整数を入力してください。</p>
       }
     </div>
   `,
@@ -129,14 +132,19 @@ export class TimeInputComponent {
   }
 
   onSlider(unit: 'minutes' | 'hours' | 'days', indexValue: string): void {
+    const index = Number(indexValue);
+    if (index === 0) {
+      this.updatePart(unit, 0);
+      return;
+    }
     const steps = this.stepsFor(unit);
-    const value = steps[Number(indexValue)] ?? steps[0];
+    const value = steps[index - 1] ?? steps[steps.length - 1];
     this.updatePart(unit, value);
   }
 
   onText(unit: 'minutes' | 'hours' | 'days', rawValue: string): void {
     const value = Number(rawValue);
-    if (!Number.isInteger(value) || value <= 0) {
+    if (rawValue.trim() === '' || !Number.isInteger(value) || value < 0) {
       this.errorKey.set(unit);
       return;
     }
@@ -177,6 +185,6 @@ export class TimeInputComponent {
     if (value <= 0) {
       return 0;
     }
-    return steps.indexOf(this.snapToNearest(value, steps));
+    return steps.indexOf(this.snapToNearest(value, steps)) + 1;
   }
 }
