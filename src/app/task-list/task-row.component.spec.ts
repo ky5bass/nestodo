@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import * as fc from 'fast-check';
 
 import { TaskRowComponent } from './task-row.component';
 import { TaskTreeNode } from './task-list.model';
 
 describe('TaskRowComponent', () => {
   let fixture: ComponentFixture<TaskRowComponent>;
+  let component: TaskRowComponent;
 
   const createNode = (overrides: Partial<TaskTreeNode> = {}): TaskTreeNode => ({
     id: 'task-1',
@@ -40,6 +42,7 @@ describe('TaskRowComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(TaskRowComponent);
+    component = fixture.componentInstance;
   });
 
   it('タスク名・期限・予定時間・実績時間・進捗を表示する', () => {
@@ -83,5 +86,33 @@ describe('TaskRowComponent', () => {
 
       expect(element.querySelector('p')).toBeNull();
     });
+  });
+
+  it('予定時間・実績時間が0の場合は0mと表示する', () => {
+    expect(component.formatMinutes(0)).toBe('0m');
+  });
+
+  it('予定時間・実績時間がnullの場合は未入力として表示する', () => {
+    expect(component.formatMinutes(null)).toBe('-');
+  });
+
+  it('Property 9: formatMinutesの0値・null値の区別', () => {
+    fc.assert(
+      fc.property(fc.oneof(fc.constant(null), fc.integer({ min: 0, max: 10000 })), (value) => {
+        const actual = component.formatMinutes(value);
+
+        if (value === null) {
+          expect(actual).toBe('-');
+          return;
+        }
+        if (value === 0) {
+          expect(actual).toBe('0m');
+          expect(actual).not.toBe(component.formatMinutes(null));
+          return;
+        }
+        expect(actual).not.toBe('-');
+      }),
+      { numRuns: 100 }
+    );
   });
 });
