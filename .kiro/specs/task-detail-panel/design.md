@@ -247,7 +247,7 @@ interface TaskContentUpdateRequest {
 
 **単体テスト**: 各コンポーネントの表示・条件分岐・バリデーションをexample-basedで検証。Angular TestBedを使用。
 
-**プロパティテスト**: [fast-check](https://github.com/dubzzz/fast-check)を使用し、上記6つの正しさの性質を各100回以上のランダム入力で検証。
+**プロパティテスト**: [fast-check](https://github.com/dubzzz/fast-check)を使用し、上記の正しさの性質を各100回以上のランダム入力で検証。
 
 - Property 1: ランダムなprogress値(0-100)設定後のstatus状態を検証
 - Property 2: ランダムな0以上の整数に対し、0入力時は0を返すこと、1以上の入力時はsnapToNearestが最近傍離散値を返すことを検証
