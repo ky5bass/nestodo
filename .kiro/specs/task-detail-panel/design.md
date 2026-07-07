@@ -121,6 +121,7 @@ export class ProgressSliderComponent {
 @Injectable({ providedIn: 'root' })
 export class DetailSaveService {
   saveField(taskId: string, field: string, value: unknown, options?: { update_last_done?: boolean; tz_offset?: number }): void;
+  saveFields(taskId: string, values: Partial<TaskDetail>, options?: { update_last_done?: boolean; tz_offset?: number }): void;
   saveContent(taskId: string, field: 'pre_info' | 'notes' | 'reflection', value: string): void;
   retry(taskId: string, field: string): void;
 }
@@ -130,6 +131,7 @@ export class DetailSaveService {
 - 同一フィールドへの連続編集はデバウンスにより最新値のみ送信
 - **event_at送信仕様**: event_atフィールドの保存時、値は `YYYY-MM-DDTHH:mm:ss` 形式のローカル日時文字列として送信する。`toISOString()`やUTC変換は使用しない。`tz_offset`はevent_atの時刻変換には使用しない（`tz_offset`はlast_done_at更新・Day_Boundary・完了処理の「本日」判定専用）
 - progress/actual_time編集時にupdate_last_done=trueの場合、tz_offset（`new Date().getTimezoneOffset()`の値）を付与して送信
+- revert（完了→未完了戻し）時はupdate_last_done=falseで送信し、tz_offsetは付与しない。サーバーはupdate_last_done=falseの場合last_done_atを変更せず、tz_offsetを必須としない（task-last-done specの仕様）
 - **例外**: Completion_Trigger（status=完了 or progress=100）の場合はOptimistic UIを適用せず、batch-completion-uiで定義されたサーバー確認フローに委譲する。この際もtz_offsetを付与する
 
 ### TimeInputComponent
@@ -164,28 +166,31 @@ export interface RevertResult { confirmed: boolean; progress?: number; }
 ```
 
 - MatDialogで実装。確定時に0〜99の進捗値を返す。キャンセル時は`confirmed: false`。
+- **revert時の保存仕様**: 確定後、`handleRevert`は`saveFields`を呼ぶ際に `{ update_last_done: false }` を渡す。サーバーに送信されるリクエストボディは `{ status: 'incomplete', progress: X, update_last_done: false }` となり、`tz_offset`は含めない。サーバーはupdate_last_done=falseの場合last_done_atを変更せず、tz_offsetを必須としない（task-last-done specの仕様）。
+
+**設計判断（revert時のupdate_last_done）**: revert時に`update_last_done: true` + `tz_offset`を渡す代替案は採用しない。revertは誤操作の訂正であり実績記録ではないため、`last_done_at`を書き換えると直近の正しい実績が失われるという理由による（Issue #35 で確認済み）。
 
 ## Data Models
 
 ### API リクエスト/レスポンス
 
 ```typescript
-// PUT /api/tasks/{id} (個別フィールド更新)
-interface TaskFieldUpdateRequest {
-  field: string;
-  value: unknown;
-  update_last_done?: boolean; // progress, actual_time編集時のみ
-  tz_offset?: number;        // update_last_done=true時またはCompletion_Trigger時に必須（分単位、JS getTimezoneOffset()値）
-}
+// PUT /api/tasks/{id} (フィールド更新 — 部分更新形式)
+// 更新対象フィールド名をキーとする（例: { status: 'incomplete', progress: 50, update_last_done: false }）
+type TaskFieldUpdateRequest = Partial<TaskFields> & {
+  update_last_done?: boolean;  // progress, actual_time編集時のみ
+  tz_offset?: number;          // update_last_done=true時またはCompletion_Trigger時に必須（分単位、JS getTimezoneOffset()値）
+};
 
 // PUT /api/tasks/{id}/contents
 interface TaskContentUpdateRequest {
-  field: 'pre_info' | 'notes' | 'reflection';
-  value: string;
+  pre_info: string | null;
+  notes: string | null;
+  reflection: string | null;
 }
 ```
 
-**設計判断**: フィールド単位の更新APIとした。PATCH全体ではなく単一フィールド更新とすることで、デバウンスとOptimistic UIの実装がシンプルになり、同時編集時の競合も最小化できるためである。
+**設計判断**: フィールド名をキーとする部分更新形式を採用した。field/valueペア形式よりも複数フィールドの同時更新（revert時のstatus+progressなど）を自然に表現でき、実装のシリアライズとも整合するためである。
 
 ### 状態遷移ルール
 
