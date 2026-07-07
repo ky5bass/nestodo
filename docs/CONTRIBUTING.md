@@ -152,7 +152,7 @@ Kiro に以下のように依頼する:
 - `.kiro/specs/<spec名>/`
 ```
 
-詳細は `.kiro/skills/implementation-orchestrator/SKILL.md` に従う。Claude Code の `承認可能` 判定は「人間の動作確認へ進めてよい」という意味であり、「即マージ可」ではない。
+詳細は `.kiro/skills/implementation-orchestrator/SKILL.md` に従う。実装フェーズでは Codex CLI / Claude Code CLI の raw log をリポジトリ内の固定ディレクトリ `./.tmp/implementation-orchestrator` 配下へ保存し、実行中の進捗確認は必要に応じて別ターミナルの `tail -f` で行う。Kiro は巨大な CLI 出力をチャットへ貼らず、完了後にログ末尾、最終結果、PR 状態から必要事項だけを要約する。Claude Code の `承認可能` 判定は「人間の動作確認へ進めてよい」という意味であり、「即マージ可」ではない。
 
 #### 7. 人間の動作確認・マージ判断
 **担当: 人間（動作確認・マージ判断）・Kiro（必要時の再開）**

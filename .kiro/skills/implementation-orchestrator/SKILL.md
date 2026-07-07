@@ -40,16 +40,54 @@ metadata:
 5. `git status --short` で未コミット変更を確認する
 6. 未コミット変更があり、実装フェーズと無関係なら停止して人間に扱いを確認する
 
-## Codex CLI 呼び出し
+## CLI ログ運用
 
-Codex CLI は non-interactive mode で呼び出す。Kiro は prompt を `${TMPDIR:-/tmp}/nestodo-codex-prompt.txt` などの一時ファイルに保存し、リポジトリルートで次を実行する。
+Kiro が Codex CLI / Claude Code CLI を `execute_bash` で呼び出す場合、raw stdout/stderr をチャットへ直接流さない。CLI の stdout はリポジトリ内の固定ディレクトリ `./.tmp/implementation-orchestrator` 配下の JSONL または JSON ファイルへ保存し、stderr は別ファイルへ保存する。ユーザーが実行中の進捗を確認したい場合は、別ターミナルで raw log を `tail -f` する。
+
+例:
 
 ```bash
-command -v codex
-codex exec --cd "$(pwd)" --sandbox workspace-write -c 'sandbox_workspace_write.network_access=true' --json -o "${TMPDIR:-/tmp}/nestodo-codex-last-message.txt" - < "${TMPDIR:-/tmp}/nestodo-codex-prompt.txt"
+tail -f ./.tmp/implementation-orchestrator/nestodo-codex-log.jsonl
+tail -f ./.tmp/implementation-orchestrator/nestodo-claude-log.jsonl
 ```
 
-`command -v codex` で Codex CLI が PATH 上にあることを確認する。`--sandbox workspace-write` は実装・テスト・PR 更新に必要なファイル編集を許可するために使う。Codex の `workspace-write` sandbox は既定ではネットワークアクセスを許可しないため、`gh pr create` や `git push` を行う実装フェーズでは `-c 'sandbox_workspace_write.network_access=true'` を指定する。このネットワーク許可は GitHub PR 操作に必要な `gh` と `git push` を意図したものであり、任意の外部通信を行わせる目的ではない。ただし Codex sandbox は通信先をこの粒度で制限できないため、ネットワーク許可が認められない環境では Codex は実装とローカル検証までを行い、PR 作成・push は停止理由として人間へ提示する。権限不足、外部サービス認証、ネットワーク許可不可、Codex CLI 不在が発生した場合は自動継続せず、人間へ判断材料を提示する。
+Kiro の実行環境がコマンド stdout を全量モデルコンテキストへ戻す場合、`cmd | tee log.jsonl` によるストリーミングは巨大な JSONL を Kiro チャットに載せてしまうため使わない。その場合は必ず `> log.jsonl 2> err.log` のようにファイルへリダイレクトし、進捗確認は別ターミナルの `tail -f` に委ねる。
+
+`tee` を使える環境でも、`cmd | tee log.jsonl` は終了コードが `tee` のものになりやすい。使う場合は `set -o pipefail` を有効にするか、CLI 本体の終了コードを別手段で確認する。ただしこのスキルの既定運用は、Kiro チャットへの巨大出力混入を避けるためファイルリダイレクトとする。
+
+JSONL を後続処理でパースする場合、stderr を `2>&1` で stdout に混ぜてはならない。JSONL が壊れるため、stderr は `err.log` など別ファイルへ保存する。
+
+Kiro はコマンド完了後に raw log の末尾、最終メッセージファイル、PR 状態を読み、次だけを要約して報告する:
+
+- PR 番号または PR URL
+- Issue 番号
+- 実行したテストと結果
+- 未検証範囲
+- 停止理由または次工程
+
+Kiro は raw log 全体や巨大な CLI 出力をチャットに貼らない。人間/Kiro 向けの要約・整形表示と raw log は明確に分離する。
+
+## Codex CLI 呼び出し
+
+Codex CLI は non-interactive mode で呼び出す。Kiro は prompt を `./.tmp/implementation-orchestrator/nestodo-codex-prompt.txt` に保存し、リポジトリルートで次を実行する。
+
+```bash
+mkdir -p ./.tmp/implementation-orchestrator
+command -v codex
+codex exec \
+  --model gpt-5.5 \
+  --cd "$(pwd)" \
+  --sandbox workspace-write \
+  -c 'model_reasoning_effort="medium"' \
+  -c 'sandbox_workspace_write.network_access=true' \
+  --json \
+  -o ./.tmp/implementation-orchestrator/nestodo-codex-last-message.txt \
+  - < ./.tmp/implementation-orchestrator/nestodo-codex-prompt.txt \
+  > ./.tmp/implementation-orchestrator/nestodo-codex-log.jsonl \
+  2> ./.tmp/implementation-orchestrator/nestodo-codex-err.log
+```
+
+`command -v codex` で Codex CLI が PATH 上にあることを確認する。Codex CLI は常に `--model gpt-5.5` と `-c 'model_reasoning_effort="medium"'` を指定し、モデルは GPT-5.5、推論は中で実行する。`--json` はイベントを stdout に JSONL として出力するため、raw JSONL として `./.tmp/implementation-orchestrator/nestodo-codex-log.jsonl` に保存する。Kiro は必要なイベント、log 末尾、または `--output-last-message` / `-o` で保存した `./.tmp/implementation-orchestrator/nestodo-codex-last-message.txt` の最終メッセージから要約する。`--sandbox workspace-write` は実装・テスト・PR 更新に必要なファイル編集を許可するために使う。Codex の `workspace-write` sandbox は既定ではネットワークアクセスを許可しないため、`gh pr create` や `git push` を行う実装フェーズでは `-c 'sandbox_workspace_write.network_access=true'` を指定する。このネットワーク許可は GitHub PR 操作に必要な `gh` と `git push` を意図したものであり、任意の外部通信を行わせる目的ではない。ただし Codex sandbox は通信先をこの粒度で制限できないため、ネットワーク許可が認められない環境では Codex は実装とローカル検証までを行い、PR 作成・push は停止理由として人間へ提示する。権限不足、外部サービス認証、ネットワーク許可不可、Codex CLI 不在が発生した場合は自動継続せず、人間へ判断材料を提示する。
 
 初回実装 prompt:
 
@@ -87,13 +125,37 @@ Codex の最終出力に Issue 番号が含まれない場合、Kiro は実装 P
 
 ## Claude Code 呼び出し
 
-Claude Code は print mode で呼び出す。Kiro は prompt を `${TMPDIR:-/tmp}/nestodo-claude-prompt.txt` などの一時ファイルに保存し、リポジトリルートで次を実行する。
+Claude Code は print mode で呼び出す。Kiro は prompt を `./.tmp/implementation-orchestrator/nestodo-claude-prompt.txt` に保存し、リポジトリルートで次を実行する。Claude Code は可能なら `--output-format stream-json --verbose` を優先し、realtime streaming の JSONL を raw log として保存する。
 
 ```bash
-claude -p --permission-mode auto --output-format json "$(cat "${TMPDIR:-/tmp}/nestodo-claude-prompt.txt")" > "${TMPDIR:-/tmp}/nestodo-claude-result.json"
+mkdir -p ./.tmp/implementation-orchestrator
+claude -p \
+  --model sonnet \
+  --effort high \
+  --permission-mode auto \
+  --output-format stream-json \
+  --verbose \
+  "$(cat ./.tmp/implementation-orchestrator/nestodo-claude-prompt.txt)" \
+  > ./.tmp/implementation-orchestrator/nestodo-claude-log.jsonl \
+  2> ./.tmp/implementation-orchestrator/nestodo-claude-err.log
 ```
 
-`--permission-mode auto` はレビューに必要な読み取り、`gh` CLI、レビューコメント投稿を Claude Code の権限判断に委ねるために使う。初回レビューでは spec、差分、インライン投稿、総括投稿で turn 数が増えやすいため、既定では `--max-turns` を指定しない。Kiro は `--max-turns` の代わりに実行時間、出力サイズ、プロセス終了状態を監視し、異常に長い実行や過大な出力を検出した場合はタイムアウトとして打ち切り、人間へ判断材料を提示する。認証、権限、外部サービス確認で停止した場合は自動継続しない。
+`--permission-mode auto` はレビューに必要な読み取り、`gh` CLI、レビューコメント投稿を Claude Code の権限判断に委ねるために使う。Claude Code の print mode で `--output-format stream-json` を使う場合は `--verbose` が必須である。`--include-partial-messages` は `stream-json` と組み合わせられるが、ログ量が大きくなるため既定では使わない。必要な場合だけ明示的に追加するオプション扱いとする。
+
+Claude Code の `stream-json` の最終結果は JSONL 内の `"type":"result"` 行、通常は最終付近の行から読む。`stream-json` が利用できない場合だけ、単発の `--output-format json` にフォールバックしてよい。
+
+```bash
+claude -p \
+  --model sonnet \
+  --effort high \
+  --permission-mode auto \
+  --output-format json \
+  "$(cat ./.tmp/implementation-orchestrator/nestodo-claude-prompt.txt)" \
+  > ./.tmp/implementation-orchestrator/nestodo-claude-result.json \
+  2> ./.tmp/implementation-orchestrator/nestodo-claude-err.log
+```
+
+Claude Code CLI は常に `--model sonnet` と `--effort high` を指定し、モデルは Sonnet 5、Effort は High で実行する。初回レビューでは spec、差分、インライン投稿、総括投稿で turn 数が増えやすいため、既定では `--max-turns` を指定しない。Kiro は `--max-turns` の代わりに実行時間、出力サイズ、プロセス終了状態を監視し、異常に長い実行や過大な出力を検出した場合はタイムアウトとして打ち切り、人間へ判断材料を提示する。認証、権限、外部サービス確認で停止した場合は自動継続しない。
 
 初回レビュー prompt:
 
