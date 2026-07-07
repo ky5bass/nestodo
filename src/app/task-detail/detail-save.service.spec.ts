@@ -129,7 +129,7 @@ describe('DetailSaveService', () => {
     });
   }));
 
-  it('Property 3: revert保存は常にupdate_last_done=falseを送信しtz_offsetを含めない', fakeAsync(() => {
+  it('revert保存は常にupdate_last_done=falseを送信しtz_offsetを含めない（プロパティテスト）', fakeAsync(() => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 99 }), (progress) => {
         TestBed.resetTestingModule();
