@@ -63,7 +63,7 @@
 
 1. 完了状態のタスクで未完了への変更が要求された場合、Detail_PanelはRevert_Modalを表示すること
 2. Revert_Modalは警告メッセージと進捗入力フィールド（0〜99の範囲）を表示すること
-3. Revert_Modalで有効な進捗値が入力され確定された場合、Detail_Save_Serviceはステータスを未完了、進捗を入力値に更新すること
+3. Revert_Modalで有効な進捗値が入力され確定された場合、Detail_Save_Serviceはステータスを未完了、進捗を入力値に更新すること。このとき `update_last_done: false` を保存リクエストに含め、`tz_offset` は送信しないこと。revert は誤操作の訂正であり `last_done_at` を変更する操作ではないため
 4. Revert_Modalでキャンセルされた場合、Detail_Panelはステータスを完了のまま維持すること
 
 ### Requirement 5: 作業時間入力UI

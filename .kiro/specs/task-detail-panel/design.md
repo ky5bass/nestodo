@@ -130,6 +130,7 @@ export class DetailSaveService {
 - 同一フィールドへの連続編集はデバウンスにより最新値のみ送信
 - **event_at送信仕様**: event_atフィールドの保存時、値は `YYYY-MM-DDTHH:mm:ss` 形式のローカル日時文字列として送信する。`toISOString()`やUTC変換は使用しない。`tz_offset`はevent_atの時刻変換には使用しない（`tz_offset`はlast_done_at更新・Day_Boundary・完了処理の「本日」判定専用）
 - progress/actual_time編集時にupdate_last_done=trueの場合、tz_offset（`new Date().getTimezoneOffset()`の値）を付与して送信
+- revert（完了→未完了戻し）時はupdate_last_done=falseで送信し、tz_offsetは付与しない。サーバーは`_should_update_last_done`をFalseと判定し`tz_offset`バリデーションをスキップする
 - **例外**: Completion_Trigger（status=完了 or progress=100）の場合はOptimistic UIを適用せず、batch-completion-uiで定義されたサーバー確認フローに委譲する。この際もtz_offsetを付与する
 
 ### TimeInputComponent
@@ -164,6 +165,9 @@ export interface RevertResult { confirmed: boolean; progress?: number; }
 ```
 
 - MatDialogで実装。確定時に0〜99の進捗値を返す。キャンセル時は`confirmed: false`。
+- **revert時の保存仕様**: 確定後、`handleRevert`は`saveField`を呼ぶ際に `{ update_last_done: false }` を渡す。サーバーに送信されるリクエストボディは `{ status: 'incomplete', progress: X, update_last_done: false }` となり、`tz_offset`は含めない。サーバー側は`update_last_done`がfalseのため`tz_offset`のバリデーションをスキップし、`last_done_at`を変更しない。
+
+**設計判断（revert時のupdate_last_done）**: revert時に`update_last_done: true` + `tz_offset`を渡す代替案は採用しない。revertは誤操作の訂正であり実績記録ではないため、`last_done_at`を書き換えると直近の正しい実績が失われるという理由による（Issue #35 で確認済み）。
 
 ## Data Models
 
