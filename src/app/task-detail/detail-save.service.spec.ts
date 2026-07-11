@@ -106,6 +106,64 @@ describe('DetailSaveService', () => {
     });
   }));
 
+  it('revert保存はupdate_last_done=falseを送信しtz_offsetを含めない', fakeAsync(() => {
+    service.selectTask(task({ status: 'complete', progress: 100 }));
+
+    service.saveFields(
+      'task-1',
+      { status: 'incomplete', progress: 42 },
+      { update_last_done: false }
+    );
+    tick(300);
+
+    const request = http.expectOne('/api/tasks/task-1');
+    expect(request.request.body).toEqual({
+      status: 'incomplete',
+      progress: 42,
+      update_last_done: false
+    });
+    expect(Object.prototype.hasOwnProperty.call(request.request.body, 'tz_offset')).toBeFalse();
+    request.flush({
+      type: 'updated',
+      task: task({ status: 'incomplete', progress: 42 })
+    });
+  }));
+
+  it('revert保存は常にupdate_last_done=falseを送信しtz_offsetを含めない（プロパティテスト）', fakeAsync(() => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 99 }), (progress) => {
+        TestBed.resetTestingModule();
+        TestBed.configureTestingModule({
+          providers: [provideHttpClient(), provideHttpClientTesting()]
+        });
+        const localService = TestBed.inject(DetailSaveService);
+        const localHttp = TestBed.inject(HttpTestingController);
+        localService.selectTask(task({ status: 'complete', progress: 100 }));
+
+        localService.saveFields(
+          'task-1',
+          { status: 'incomplete', progress },
+          { update_last_done: false }
+        );
+        tick(300);
+
+        const request = localHttp.expectOne('/api/tasks/task-1');
+        expect(request.request.body).toEqual({
+          status: 'incomplete',
+          progress,
+          update_last_done: false
+        });
+        expect(Object.prototype.hasOwnProperty.call(request.request.body, 'tz_offset')).toBeFalse();
+        request.flush({
+          type: 'updated',
+          task: task({ status: 'incomplete', progress })
+        });
+        localHttp.verify();
+      }),
+      { numRuns: 100 }
+    );
+  }));
+
   it('Property 1: Completion_Triggerはtz_offset付きでサーバー確認フローへ送信する', fakeAsync(() => {
     fc.assert(
       fc.property(

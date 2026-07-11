@@ -453,10 +453,14 @@ export class TaskDetailPanelComponent {
     if (!result.confirmed || result.progress === undefined) {
       return;
     }
-    this.save.saveFields(task.id, {
-      status: 'incomplete',
-      progress: result.progress
-    });
+    this.save.saveFields(
+      task.id,
+      {
+        status: 'incomplete',
+        progress: result.progress
+      },
+      { update_last_done: false }
+    );
   }
 
   contentValue(task: TaskDetail, field: TaskContentField): string {
