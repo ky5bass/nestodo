@@ -939,11 +939,11 @@ interface ActualHistoryRow {
       }
 
       .attribute-group h2 {
-        color: #8fa0b1;
+        color: #62a69e;
         font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 0.12em;
-        margin: 0;
+        margin: 0 0 0 -8px;
         position: relative;
       }
 
@@ -952,7 +952,7 @@ interface ActualHistoryRow {
         border: 1px solid #62a69e;
         content: '';
         height: 8px;
-        left: -29px;
+        left: -21px;
         position: absolute;
         top: 50%;
         transform: translateY(-50%) rotate(45deg);
