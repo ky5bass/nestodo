@@ -312,12 +312,29 @@ interface ActualHistoryRow {
             <h2 id="actual-history-title">実績時間の履歴と修正</h2>
             <div class="history-table-wrap">
               <table class="history-table">
+                <colgroup>
+                  <col class="history-when-column" />
+                  <col class="history-operation-column" />
+                  <col class="history-total-column" />
+                </colgroup>
                 <thead>
                   <tr><th aria-label="いつ"></th><th>操作</th><th>実績時間の累計</th></tr>
                 </thead>
                 <tbody>
                   @for (entry of actualHistoryFor(historyTask); track $index) {
-                    <tr><td>{{ entry.when }}</td><td>{{ entry.operation }}</td><td>{{ entry.cumulative }}</td></tr>
+                    <tr>
+                      <td>{{ entry.when }}</td>
+                      <td class="history-duration">
+                        @for (part of metricParts(entry.operation); track $index) {
+                          <span [class.history-unit]="part.unit">{{ part.text }}</span>
+                        }
+                      </td>
+                      <td class="history-duration">
+                        @for (part of metricParts(entry.cumulative); track $index) {
+                          <span [class.history-unit]="part.unit">{{ part.text }}</span>
+                        }
+                      </td>
+                    </tr>
                   } @empty {
                     <tr><td>履歴はありません</td><td></td><td></td></tr>
                   }
@@ -1184,7 +1201,20 @@ interface ActualHistoryRow {
       .history-table {
         border-collapse: collapse;
         color: #e8edf2;
+        table-layout: fixed;
         width: 100%;
+      }
+
+      .history-when-column {
+        width: 30%;
+      }
+
+      .history-operation-column {
+        width: 43%;
+      }
+
+      .history-total-column {
+        width: 27%;
       }
 
       .history-table th,
@@ -1200,6 +1230,15 @@ interface ActualHistoryRow {
         font-weight: 400;
         position: sticky;
         top: 0;
+      }
+
+      .history-table td:last-child {
+        white-space: nowrap;
+      }
+
+      .history-unit {
+        font-size: 0.68em;
+        padding-left: 1px;
       }
 
       .history-correction-field {
