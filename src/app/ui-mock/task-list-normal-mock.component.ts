@@ -923,10 +923,14 @@ interface ActualHistoryRow {
       .detail-fields,
       .attribute-group {
         display: grid;
-        gap: 14px;
+      }
+
+      .detail-fields {
+        gap: 28px;
       }
 
       .attribute-group {
+        gap: 14px;
         border-left: 1px solid #3f4c59;
         margin-left: 6px;
         padding-left: 24px;
