@@ -933,13 +933,14 @@ interface ActualHistoryRow {
         gap: 14px;
         border-left: 1px solid #3f4c59;
         margin-left: 6px;
+        padding-bottom: 8px;
         padding-left: 24px;
         padding-top: 14px;
         position: relative;
       }
 
       .after-group {
-        padding-bottom: 140px;
+        margin-bottom: 140px;
       }
 
       .attribute-group h2 {
