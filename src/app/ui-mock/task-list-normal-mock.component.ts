@@ -225,7 +225,21 @@ interface ActualHistoryRow {
               <h2 id="before-heading">PLAN</h2>
               <label class="field">
                 <span>事前情報</span>
-                <textarea rows="4" [value]="detail.preInfo || ''" (input)="changeContent(detail, 'preInfo', $event)"></textarea>
+                <span class="resizable-textarea">
+                  <textarea #preInfoTextarea rows="4" [value]="detail.preInfo || ''" (input)="changeContent(detail, 'preInfo', $event)"></textarea>
+                  <span
+                    class="textarea-resize-handle"
+                    role="separator"
+                    tabindex="0"
+                    aria-label="事前情報の入力欄の高さを変更"
+                    aria-orientation="horizontal"
+                    (pointerdown)="startTextareaResize(preInfoTextarea, $event)"
+                    (pointermove)="resizeTextarea($event)"
+                    (pointerup)="endTextareaResize($event)"
+                    (pointercancel)="endTextareaResize($event)"
+                    (keydown)="resizeTextareaWithKeyboard(preInfoTextarea, $event)"
+                  ></span>
+                </span>
               </label>
               <div class="field horizontal-field">
                 <span>優先度</span>
@@ -257,7 +271,21 @@ interface ActualHistoryRow {
               <h2 id="in-progress-heading">DO</h2>
               <label class="field">
                 <span>ノート</span>
-                <textarea rows="4" [value]="detail.notes || ''" (input)="changeContent(detail, 'notes', $event)"></textarea>
+                <span class="resizable-textarea">
+                  <textarea #notesTextarea rows="4" [value]="detail.notes || ''" (input)="changeContent(detail, 'notes', $event)"></textarea>
+                  <span
+                    class="textarea-resize-handle"
+                    role="separator"
+                    tabindex="0"
+                    aria-label="ノートの入力欄の高さを変更"
+                    aria-orientation="horizontal"
+                    (pointerdown)="startTextareaResize(notesTextarea, $event)"
+                    (pointermove)="resizeTextarea($event)"
+                    (pointerup)="endTextareaResize($event)"
+                    (pointercancel)="endTextareaResize($event)"
+                    (keydown)="resizeTextareaWithKeyboard(notesTextarea, $event)"
+                  ></span>
+                </span>
               </label>
               <div class="field horizontal-field">
                 <span>進捗</span>
@@ -299,7 +327,21 @@ interface ActualHistoryRow {
               <h2 id="after-heading">REVIEW</h2>
               <label class="field">
                 <span>ふりかえり</span>
-                <textarea rows="4" [value]="detail.reflection || ''" (input)="changeContent(detail, 'reflection', $event)"></textarea>
+                <span class="resizable-textarea">
+                  <textarea #reflectionTextarea rows="4" [value]="detail.reflection || ''" (input)="changeContent(detail, 'reflection', $event)"></textarea>
+                  <span
+                    class="textarea-resize-handle"
+                    role="separator"
+                    tabindex="0"
+                    aria-label="ふりかえりの入力欄の高さを変更"
+                    aria-orientation="horizontal"
+                    (pointerdown)="startTextareaResize(reflectionTextarea, $event)"
+                    (pointermove)="resizeTextarea($event)"
+                    (pointerup)="endTextareaResize($event)"
+                    (pointercancel)="endTextareaResize($event)"
+                    (keydown)="resizeTextareaWithKeyboard(reflectionTextarea, $event)"
+                  ></span>
+                </span>
               </label>
             </section>
           </section>
@@ -1025,8 +1067,52 @@ interface ActualHistoryRow {
       }
 
       .field textarea {
+        box-sizing: border-box;
         min-height: 132px;
-        resize: vertical;
+        resize: none;
+      }
+
+      .resizable-textarea {
+        display: block;
+        min-width: 0;
+        position: relative;
+      }
+
+      .resizable-textarea textarea {
+        display: block;
+        padding-bottom: 18px;
+      }
+
+      .textarea-resize-handle {
+        bottom: 0;
+        cursor: ns-resize;
+        height: 32px;
+        position: absolute;
+        right: 0;
+        touch-action: none;
+        width: 44px;
+      }
+
+      .textarea-resize-handle::after {
+        border-bottom: 2px solid #7e8d9d;
+        border-right: 2px solid #7e8d9d;
+        bottom: 6px;
+        content: '';
+        height: 10px;
+        position: absolute;
+        right: 6px;
+        width: 10px;
+      }
+
+      .textarea-resize-handle:hover::after,
+      .textarea-resize-handle:focus-visible::after {
+        border-color: #c6d1dc;
+      }
+
+      .textarea-resize-handle:focus-visible {
+        border-radius: 4px;
+        outline: 2px solid #62a69e;
+        outline-offset: -4px;
       }
 
       .field input[type='datetime-local'] {
@@ -1478,6 +1564,12 @@ export class TaskListNormalMockComponent {
   private pendingConfirmation: (() => void) | null = null;
   private confirmationTask: MockTask | null = null;
   private draftProgress: { taskId: string; value: number } | null = null;
+  private textareaResize: {
+    pointerId: number;
+    textarea: HTMLTextAreaElement;
+    startHeight: number;
+    startY: number;
+  } | null = null;
   actualAddition: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   actualCorrection: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   actualHistoryTaskId: string | null = null;
@@ -1816,6 +1908,47 @@ export class TaskListNormalMockComponent {
 
   changeContent(task: MockTask, field: ContentField, event: Event): void {
     task[field] = (event.target as HTMLTextAreaElement).value;
+  }
+
+  startTextareaResize(textarea: HTMLTextAreaElement, event: PointerEvent): void {
+    event.preventDefault();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    this.textareaResize = {
+      pointerId: event.pointerId,
+      textarea,
+      startHeight: textarea.getBoundingClientRect().height,
+      startY: event.clientY
+    };
+  }
+
+  resizeTextarea(event: PointerEvent): void {
+    if (!this.textareaResize || this.textareaResize.pointerId !== event.pointerId) {
+      return;
+    }
+    const nextHeight = Math.max(132, this.textareaResize.startHeight + event.clientY - this.textareaResize.startY);
+    this.textareaResize.textarea.style.height = `${nextHeight}px`;
+  }
+
+  endTextareaResize(event: PointerEvent): void {
+    if (!this.textareaResize || this.textareaResize.pointerId !== event.pointerId) {
+      return;
+    }
+    const handle = event.currentTarget as HTMLElement;
+    if (handle.hasPointerCapture(event.pointerId)) {
+      handle.releasePointerCapture(event.pointerId);
+    }
+    this.textareaResize = null;
+  }
+
+  resizeTextareaWithKeyboard(textarea: HTMLTextAreaElement, event: KeyboardEvent): void {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+      return;
+    }
+    event.preventDefault();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    const step = event.shiftKey ? 48 : 16;
+    const nextHeight = Math.max(132, textarea.getBoundingClientRect().height + direction * step);
+    textarea.style.height = `${nextHeight}px`;
   }
 
   changeTaskName(task: MockTask, event: Event): void {
