@@ -864,7 +864,7 @@ interface ActualHistoryRow {
         transition: color 140ms ease, opacity 140ms ease;
       }
 
-      .task-row:not(:hover) .row-export-button[aria-pressed='true']:not(:focus-visible) {
+      .row-export-button[aria-pressed='true']:not(:hover):not(:focus-visible) {
         opacity: 0;
       }
 
