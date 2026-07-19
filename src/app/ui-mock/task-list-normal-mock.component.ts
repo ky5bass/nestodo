@@ -29,9 +29,16 @@ interface MockTask {
 }
 
 interface ActualHistoryEntry {
-  recordedAt: string;
+  recordedAt: Date;
+  operation: '追加' | '修正';
+  deltaMinutes: number;
+  cumulativeMinutes: number;
+}
+
+interface ActualHistoryRow {
+  when: string;
   operation: string;
-  value: string;
+  cumulative: string;
 }
 
 @Component({
@@ -306,13 +313,13 @@ interface ActualHistoryEntry {
             <div class="history-table-wrap">
               <table class="history-table">
                 <thead>
-                  <tr><th>日時</th><th>操作</th><th>実績時間</th></tr>
+                  <tr><th aria-label="いつ"></th><th>操作</th><th>実績時間の累計</th></tr>
                 </thead>
                 <tbody>
                   @for (entry of actualHistoryFor(historyTask); track $index) {
-                    <tr><td>{{ entry.recordedAt }}</td><td>{{ entry.operation }}</td><td>{{ entry.value }}</td></tr>
+                    <tr><td>{{ entry.when }}</td><td>{{ entry.operation }}</td><td>{{ entry.cumulative }}</td></tr>
                   } @empty {
-                    <tr><td colspan="3">履歴はありません</td></tr>
+                    <tr><td>履歴はありません</td><td></td><td></td></tr>
                   }
                 </tbody>
               </table>
@@ -1414,14 +1421,7 @@ export class TaskListNormalMockComponent {
   actualAddition: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   actualCorrection: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   actualHistoryTaskId: string | null = null;
-  private readonly actualHistoryEntries = new Map<string, ActualHistoryEntry[]>([
-    ['todo-a1-1-1', [
-      { recordedAt: '2026/07/18 10:00', operation: '追加', value: '＋2時間' },
-      { recordedAt: '2026/07/18 14:30', operation: '追加', value: '＋30分' }
-    ]],
-    ['todo-a1-1-2', [{ recordedAt: '2026/07/18 13:00', operation: '追加', value: '＋5時間' }]],
-    ['todo-a1-1-3', [{ recordedAt: '2026/07/18 09:40', operation: '追加', value: '＋10分' }]]
-  ]);
+  private readonly actualHistoryEntries = this.createInitialActualHistory();
 
   readonly timeUnits: readonly { key: TimeUnit; label: string; steps: readonly number[] }[] = [
     { key: 'days', label: '日', steps: [1, 2, 3, 4, 5, 7, 10, 15, 20] },
@@ -1924,10 +1924,10 @@ export class TaskListNormalMockComponent {
     if (this.actualAdditionIsZero()) {
       return;
     }
-    const addedValue = this.formatTime(this.actualAddition);
-    const total = this.totalMinutes(this.timeParts(task.actual)) + this.totalMinutes(this.actualAddition);
+    const addedMinutes = this.totalMinutes(this.actualAddition);
+    const total = this.totalMinutes(this.timeParts(task.actual)) + addedMinutes;
     task.actual = this.formatTime(this.partsFromTotalMinutes(total));
-    this.appendActualHistory(task, '追加', `＋${addedValue}`);
+    this.appendActualHistory(task, '追加', addedMinutes, total);
     this.resetActualAddition();
   }
 
@@ -1946,8 +1946,8 @@ export class TaskListNormalMockComponent {
     return this.tasks.find((task) => task.id === this.actualHistoryTaskId) ?? null;
   }
 
-  actualHistoryFor(task: MockTask): ActualHistoryEntry[] {
-    return this.actualHistoryEntries.get(task.id) ?? [];
+  actualHistoryFor(task: MockTask): ActualHistoryRow[] {
+    return this.buildActualHistoryRows(this.actualHistoryEntries.get(task.id) ?? []);
   }
 
   actualCorrectionStepIndex(unit: TimeUnit): number {
@@ -1983,9 +1983,10 @@ export class TaskListNormalMockComponent {
     if (!this.actualCorrectionChanged(task)) {
       return;
     }
-    const previous = task.actual || '0分';
-    task.actual = this.formatTime(this.partsFromTotalMinutes(this.totalMinutes(this.actualCorrection)));
-    this.appendActualHistory(task, '修正', `${previous} → ${task.actual}`);
+    const previousMinutes = this.totalMinutes(this.timeParts(task.actual));
+    const correctedMinutes = this.totalMinutes(this.actualCorrection);
+    task.actual = this.formatTime(this.partsFromTotalMinutes(correctedMinutes));
+    this.appendActualHistory(task, '修正', correctedMinutes - previousMinutes, correctedMinutes);
     this.closeActualHistory();
   }
 
@@ -2080,20 +2081,115 @@ export class TaskListNormalMockComponent {
     this.actualAddition = { days: 0, hours: 0, minutes: 0 };
   }
 
-  private appendActualHistory(task: MockTask, operation: string, value: string): void {
+  private appendActualHistory(
+    task: MockTask,
+    operation: ActualHistoryEntry['operation'],
+    deltaMinutes: number,
+    cumulativeMinutes: number
+  ): void {
     const entries = this.actualHistoryEntries.get(task.id) ?? [];
-    entries.push({ recordedAt: this.currentMockTimestamp(), operation, value });
+    entries.push({ recordedAt: new Date(), operation, deltaMinutes, cumulativeMinutes });
     this.actualHistoryEntries.set(task.id, entries);
   }
 
-  private currentMockTimestamp(): string {
-    return new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date());
+  private createInitialActualHistory(): Map<string, ActualHistoryEntry[]> {
+    return new Map<string, ActualHistoryEntry[]>([
+      ['todo-a1-1-1', [
+        { recordedAt: this.dateAtDayOffset(-2, 10, 0), operation: '追加', deltaMinutes: 120, cumulativeMinutes: 120 },
+        { recordedAt: this.dateAtDayOffset(-1, 9, 30), operation: '追加', deltaMinutes: 45, cumulativeMinutes: 165 },
+        { recordedAt: this.dateAtDayOffset(-1, 16, 15), operation: '修正', deltaMinutes: -15, cumulativeMinutes: 150 }
+      ]],
+      ['todo-a1-1-2', [
+        { recordedAt: this.dateAtDayOffset(-2, 11, 0), operation: '追加', deltaMinutes: 120, cumulativeMinutes: 120 },
+        { recordedAt: this.dateAtDayOffset(-1, 10, 0), operation: '追加', deltaMinutes: 120, cumulativeMinutes: 240 },
+        { recordedAt: this.dateAtDayOffset(-1, 15, 0), operation: '追加', deltaMinutes: 60, cumulativeMinutes: 300 }
+      ]],
+      ['todo-a1-1-3', [
+        { recordedAt: this.dateAtDayOffset(-1, 9, 40), operation: '追加', deltaMinutes: 30, cumulativeMinutes: 30 },
+        { recordedAt: this.dateAtDayOffset(-1, 17, 10), operation: '修正', deltaMinutes: -20, cumulativeMinutes: 10 }
+      ]]
+    ]);
+  }
+
+  /**
+   * 当日の操作は追加・修正のたびに時刻付きで明細表示する。
+   * 前日以前の操作は、翌日以降に日単位で「追加」「修正」それぞれの増減を合計し、
+   * 同じ日の操作を1行へまとめる。本実装へ移行するときも、生の操作履歴は保持したまま
+   * 表示時にこの集約を行い、過去日の個々の操作を失わないようにする。
+   */
+  private buildActualHistoryRows(entries: ActualHistoryEntry[]): ActualHistoryRow[] {
+    const sortedEntries = [...entries].sort((left, right) => left.recordedAt.getTime() - right.recordedAt.getTime());
+    const todayKey = this.localDateKey(new Date());
+    const rows: ActualHistoryRow[] = [];
+    const pastEntriesByDate = new Map<string, ActualHistoryEntry[]>();
+
+    for (const entry of sortedEntries) {
+      const dateKey = this.localDateKey(entry.recordedAt);
+      if (dateKey === todayKey) {
+        rows.push({
+          when: this.formatHistoryDateTime(entry.recordedAt),
+          operation: `${entry.operation}: ${this.formatSignedDuration(entry.deltaMinutes)}`,
+          cumulative: this.formatTime(this.partsFromTotalMinutes(entry.cumulativeMinutes))
+        });
+        continue;
+      }
+      const dailyEntries = pastEntriesByDate.get(dateKey) ?? [];
+      dailyEntries.push(entry);
+      pastEntriesByDate.set(dateKey, dailyEntries);
+    }
+
+    const pastRows = [...pastEntriesByDate.entries()].map(([dateKey, dailyEntries]) => {
+      const additions = dailyEntries
+        .filter((entry) => entry.operation === '追加')
+        .reduce((total, entry) => total + entry.deltaMinutes, 0);
+      const corrections = dailyEntries
+        .filter((entry) => entry.operation === '修正')
+        .reduce((total, entry) => total + entry.deltaMinutes, 0);
+      const operations = [
+        additions !== 0 ? `追加: ${this.formatSignedDuration(additions)}` : null,
+        corrections !== 0 ? `修正: ${this.formatSignedDuration(corrections)}` : null
+      ].filter((operation): operation is string => operation !== null);
+      const cumulativeMinutes = dailyEntries[dailyEntries.length - 1].cumulativeMinutes;
+      return {
+        dateKey,
+        row: {
+          when: this.formatHistoryDate(dailyEntries[0].recordedAt),
+          operation: operations.join(' / '),
+          cumulative: this.formatTime(this.partsFromTotalMinutes(cumulativeMinutes))
+        }
+      };
+    });
+
+    return [
+      ...pastRows.sort((left, right) => left.dateKey.localeCompare(right.dateKey)).map(({ row }) => row),
+      ...rows
+    ];
+  }
+
+  private formatSignedDuration(minutes: number): string {
+    const sign = minutes >= 0 ? '+' : '-';
+    return `${sign}${this.formatTime(this.partsFromTotalMinutes(Math.abs(minutes)))}`;
+  }
+
+  private dateAtDayOffset(dayOffset: number, hours: number, minutes: number): Date {
+    const date = new Date();
+    date.setDate(date.getDate() + dayOffset);
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }
+
+  private localDateKey(date: Date): string {
+    const pad = (part: number): string => String(part).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
+  private formatHistoryDate(date: Date): string {
+    return this.localDateKey(date).replaceAll('-', '/');
+  }
+
+  private formatHistoryDateTime(date: Date): string {
+    const pad = (part: number): string => String(part).padStart(2, '0');
+    return `${this.formatHistoryDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
   private snapDateTimeToFiveMinutes(value: string): string {
