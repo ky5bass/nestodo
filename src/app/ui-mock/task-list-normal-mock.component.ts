@@ -930,7 +930,7 @@ interface ActualHistoryRow {
         border-left: 1px solid #3f4c59;
         margin-left: 6px;
         padding-left: 24px;
-        padding-top: 24px;
+        padding-top: 14px;
         position: relative;
       }
 
