@@ -238,7 +238,11 @@ interface ActualHistoryRow {
                     (pointerup)="endTextareaResize($event)"
                     (pointercancel)="endTextareaResize($event)"
                     (keydown)="resizeTextareaWithKeyboard(preInfoTextarea, $event)"
-                  ></span>
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" aria-hidden="true">
+                      <path d="M784-120 120-783l57-57 663 663-56 57Zm-401 0L120-383l57-57 263 263-57 57Z" />
+                    </svg>
+                  </span>
                 </span>
               </label>
               <div class="field horizontal-field">
@@ -284,7 +288,11 @@ interface ActualHistoryRow {
                     (pointerup)="endTextareaResize($event)"
                     (pointercancel)="endTextareaResize($event)"
                     (keydown)="resizeTextareaWithKeyboard(notesTextarea, $event)"
-                  ></span>
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" aria-hidden="true">
+                      <path d="M784-120 120-783l57-57 663 663-56 57Zm-401 0L120-383l57-57 263 263-57 57Z" />
+                    </svg>
+                  </span>
                 </span>
               </label>
               <div class="field horizontal-field">
@@ -340,7 +348,11 @@ interface ActualHistoryRow {
                     (pointerup)="endTextareaResize($event)"
                     (pointercancel)="endTextareaResize($event)"
                     (keydown)="resizeTextareaWithKeyboard(reflectionTextarea, $event)"
-                  ></span>
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" aria-hidden="true">
+                      <path d="M784-120 120-783l57-57 663 663-56 57Zm-401 0L120-383l57-57 263 263-57 57Z" />
+                    </svg>
+                  </span>
                 </span>
               </label>
             </section>
@@ -1084,29 +1096,28 @@ interface ActualHistoryRow {
       }
 
       .textarea-resize-handle {
+        align-items: flex-end;
         bottom: 0;
+        color: #7e8d9d;
         cursor: ns-resize;
+        display: flex;
         height: 32px;
+        justify-content: flex-end;
         position: absolute;
         right: 0;
         touch-action: none;
         width: 44px;
       }
 
-      .textarea-resize-handle::after {
-        border-bottom: 2px solid #7e8d9d;
-        border-right: 2px solid #7e8d9d;
-        bottom: 6px;
-        content: '';
-        height: 10px;
-        position: absolute;
-        right: 6px;
-        width: 10px;
+      .textarea-resize-handle svg {
+        height: 24px;
+        transform: scaleX(-1);
+        width: 24px;
       }
 
-      .textarea-resize-handle:hover::after,
-      .textarea-resize-handle:focus-visible::after {
-        border-color: #c6d1dc;
+      .textarea-resize-handle:hover,
+      .textarea-resize-handle:focus-visible {
+        color: #e3e3e3;
       }
 
       .textarea-resize-handle:focus-visible {
