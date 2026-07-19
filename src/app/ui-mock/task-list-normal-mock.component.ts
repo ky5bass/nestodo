@@ -222,7 +222,7 @@ interface ActualHistoryRow {
             </div>
 
             <section class="attribute-group" aria-labelledby="before-heading">
-              <h2 id="before-heading">Ｐ</h2>
+              <h2 id="before-heading">PLAN</h2>
               <label class="field">
                 <span>事前情報</span>
                 <textarea rows="4" [value]="detail.preInfo || ''" (input)="changeContent(detail, 'preInfo', $event)"></textarea>
@@ -254,7 +254,7 @@ interface ActualHistoryRow {
             </section>
 
             <section class="attribute-group" aria-labelledby="in-progress-heading">
-              <h2 id="in-progress-heading">Ｄ</h2>
+              <h2 id="in-progress-heading">DO</h2>
               <label class="field">
                 <span>ノート</span>
                 <textarea rows="4" [value]="detail.notes || ''" (input)="changeContent(detail, 'notes', $event)"></textarea>
@@ -296,7 +296,7 @@ interface ActualHistoryRow {
             </section>
 
             <section class="attribute-group after-group" aria-labelledby="after-heading">
-              <h2 id="after-heading">Ｃ</h2>
+              <h2 id="after-heading">REVIEW</h2>
               <label class="field">
                 <span>ふりかえり</span>
                 <textarea rows="4" [value]="detail.reflection || ''" (input)="changeContent(detail, 'reflection', $event)"></textarea>
@@ -927,7 +927,11 @@ interface ActualHistoryRow {
       }
 
       .attribute-group {
+        border-left: 1px solid #3f4c59;
+        margin-left: 6px;
+        padding-left: 24px;
         padding-top: 24px;
+        position: relative;
       }
 
       .after-group {
@@ -935,13 +939,24 @@ interface ActualHistoryRow {
       }
 
       .attribute-group h2 {
-        border-bottom: 1px solid #303b49;
-        color: #e8edf2;
-        font-size: 1.05rem;
-        font-weight: 600;
-        letter-spacing: 0.04em;
+        color: #8fa0b1;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
         margin: 0;
-        padding-bottom: 4px;
+        position: relative;
+      }
+
+      .attribute-group h2::before {
+        background: #0f151d;
+        border: 1px solid #62a69e;
+        content: '';
+        height: 8px;
+        left: -29px;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%) rotate(45deg);
+        width: 8px;
       }
 
       .field,
