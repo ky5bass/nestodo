@@ -139,12 +139,12 @@ interface ActualHistoryRow {
               </span>
               <span class="meta due">{{ task.eventLabel }}</span>
               <span class="meta metric">
-                @for (part of metricParts(task.estimated); track $index) {
+                @for (part of listTimeMetricParts(task.estimated); track $index) {
                   <span [class.metric-unit]="part.unit">{{ part.text }}</span>
                 }
               </span>
               <span class="meta metric">
-                @for (part of metricParts(task.actual); track $index) {
+                @for (part of listTimeMetricParts(task.actual); track $index) {
                   <span [class.metric-unit]="part.unit">{{ part.text }}</span>
                 }
               </span>
@@ -240,12 +240,12 @@ interface ActualHistoryRow {
                 <input type="datetime-local" step="300" [value]="eventAtValue(detail)" (click)="openDateTimePicker($event)" (change)="changeEventAt(detail, $event)" />
               </label>
               <div class="field horizontal-field">
-                <span>予定時間</span>
+                <span>予定工数</span>
                 <div class="time-input">
                   @for (unit of timeUnits; track unit.key) {
                     <label class="time-unit">
-                      <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'予定時間（' + unit.label + '）'" [value]="timeStepIndex(detail.estimated, unit.key)" (input)="changeTimeSlider(detail, 'estimated', unit.key, $event)" />
-                      <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'予定時間（' + unit.label + '）'" [value]="timePart(detail.estimated, unit.key)" (change)="changeTimeNumber(detail, 'estimated', unit.key, $event)" />
+                      <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'予定工数（' + unit.label + '）'" [value]="timeStepIndex(detail.estimated, unit.key)" (input)="changeTimeSlider(detail, 'estimated', unit.key, $event)" />
+                      <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'予定工数（' + unit.label + '）'" [value]="timePart(detail.estimated, unit.key)" (change)="changeTimeNumber(detail, 'estimated', unit.key, $event)" />
                       <span class="time-unit-label">{{ unit.label }}</span>
                     </label>
                   }
@@ -270,10 +270,10 @@ interface ActualHistoryRow {
                 </div>
               </div>
               <div class="field horizontal-field">
-                <span>実績時間</span>
+                <span>実績工数</span>
                 <div class="actual-time-input">
                   <div class="actual-total-row">
-                    <div class="actual-total metric" aria-label="現在の実績時間">
+                    <div class="actual-total metric" aria-label="現在の実績工数">
                       @for (part of metricParts(detail.actual || '0分'); track $index) {
                         <span [class.metric-unit]="part.unit">{{ part.text }}</span>
                       }
@@ -284,8 +284,8 @@ interface ActualHistoryRow {
                   <div class="time-input actual-add-controls">
                     @for (unit of timeUnits; track unit.key) {
                       <label class="time-unit">
-                        <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'追加する実績時間（' + unit.label + '）'" [value]="actualAdditionStepIndex(unit.key)" (input)="changeActualAdditionSlider(unit.key, $event)" />
-                        <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'追加する実績時間（' + unit.label + '）'" [value]="actualAddition[unit.key]" (change)="changeActualAdditionNumber(unit.key, $event)" />
+                        <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'追加する実績工数（' + unit.label + '）'" [value]="actualAdditionStepIndex(unit.key)" (input)="changeActualAdditionSlider(unit.key, $event)" />
+                        <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'追加する実績工数（' + unit.label + '）'" [value]="actualAddition[unit.key]" (change)="changeActualAdditionNumber(unit.key, $event)" />
                         <span class="time-unit-label">{{ unit.label }}</span>
                       </label>
                     }
@@ -309,7 +309,7 @@ interface ActualHistoryRow {
       @if (actualHistoryTask(); as historyTask) {
         <div class="modal-backdrop" role="presentation" (click)="closeActualHistory($event)">
           <section class="actual-history-modal" role="dialog" aria-modal="true" aria-labelledby="actual-history-title" (click)="$event.stopPropagation()">
-            <h2 id="actual-history-title">実績時間の履歴と修正</h2>
+            <h2 id="actual-history-title">実績工数の履歴と修正</h2>
             <div class="history-table-wrap">
               <table class="history-table">
                 <colgroup>
@@ -318,7 +318,7 @@ interface ActualHistoryRow {
                   <col class="history-total-column" />
                 </colgroup>
                 <thead>
-                  <tr><th aria-label="いつ"></th><th>操作</th><th>実績時間の累計</th></tr>
+                  <tr><th aria-label="いつ"></th><th>操作</th><th>実績工数の累計</th></tr>
                 </thead>
                 <tbody>
                   @for (entry of actualHistoryFor(historyTask); track $index) {
@@ -342,12 +342,12 @@ interface ActualHistoryRow {
               </table>
             </div>
             <div class="field history-correction-field">
-              <span>実績時間を修正</span>
+              <span>実績工数を修正</span>
               <div class="time-input history-time-input">
                 @for (unit of timeUnits; track unit.key) {
                   <label class="time-unit">
-                    <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'修正後の実績時間（' + unit.label + '）'" [value]="actualCorrectionStepIndex(unit.key)" (input)="changeActualCorrectionSlider(unit.key, $event)" />
-                    <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'修正後の実績時間（' + unit.label + '）'" [value]="actualCorrection[unit.key]" (change)="changeActualCorrectionNumber(unit.key, $event)" />
+                    <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'修正後の実績工数（' + unit.label + '）'" [value]="actualCorrectionStepIndex(unit.key)" (input)="changeActualCorrectionSlider(unit.key, $event)" />
+                    <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'修正後の実績工数（' + unit.label + '）'" [value]="actualCorrection[unit.key]" (change)="changeActualCorrectionNumber(unit.key, $event)" />
                     <span class="time-unit-label">{{ unit.label }}</span>
                   </label>
                 }
@@ -2312,6 +2312,13 @@ export class TaskListNormalMockComponent {
         text,
         unit: ['日', '時間', '分', '%', '％'].includes(text)
       }));
+  }
+
+  listTimeMetricParts(value: string | undefined): { text: string; unit: boolean }[] {
+    if (!value || this.totalMinutes(this.timeParts(value)) === 0) {
+      return [];
+    }
+    return this.metricParts(value);
   }
 
   progressValue(task: MockTask): number {
