@@ -1178,10 +1178,11 @@ interface ActualHistoryRow {
         border: 1px solid #3b4857;
         border-radius: 8px;
         box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+        box-sizing: border-box;
         display: grid;
         gap: 20px;
         max-height: calc(100vh - 40px);
-        max-width: 620px;
+        max-width: 800px;
         overflow: auto;
         padding: 22px;
         width: 100%;
@@ -1206,15 +1207,15 @@ interface ActualHistoryRow {
       }
 
       .history-when-column {
-        width: 30%;
+        width: 23%;
       }
 
       .history-operation-column {
-        width: 43%;
+        width: 54%;
       }
 
       .history-total-column {
-        width: 27%;
+        width: 23%;
       }
 
       .history-table th,
