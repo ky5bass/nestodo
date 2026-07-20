@@ -139,4 +139,25 @@ describe('TaskListNormalMockComponent', () => {
     expect(host.querySelector('.actual-history-modal .time-range')).toBeNull();
     expect(host.querySelector('.actual-history-modal .modal-confirm-button')).toBeNull();
   });
+
+  it('実績追加は時間と分だけを表示し、追加記号を実績工数ボタンの中央へ配置する', () => {
+    TestBed.configureTestingModule({ imports: [TaskListNormalMockComponent] });
+    const fixture = TestBed.createComponent(TaskListNormalMockComponent);
+    const component = fixture.componentInstance;
+    component.selectedTaskId = 'todo-a1-1-1';
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    const additionControls = host.querySelector<HTMLElement>('.actual-add-controls');
+    const unitLabels = Array.from(additionControls?.querySelectorAll<HTMLElement>('.time-unit-label') ?? [])
+      .map((label) => label.textContent?.trim());
+    const hourSlider = additionControls?.querySelector<HTMLInputElement>('.time-range[aria-label*="時間"]');
+    const additionMark = host.querySelector<HTMLElement>('.addition-mark');
+
+    expect(unitLabels).toEqual(['時間', '分']);
+    expect(hourSlider?.max).toBe('8');
+    expect(component.actualAdditionUnits.find((unit) => unit.key === 'hours')?.steps).toContain(8);
+    expect(additionMark && getComputedStyle(additionMark).gridColumnStart).toBe('1');
+    expect(additionMark && getComputedStyle(additionMark).justifySelf).toBe('center');
+  });
 });

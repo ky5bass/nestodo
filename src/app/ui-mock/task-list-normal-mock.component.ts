@@ -427,7 +427,7 @@ interface DateTimeDraft {
                   </div>
                   <div class="addition-mark" aria-hidden="true">＋</div>
                   <div class="time-input actual-add-controls">
-                    @for (unit of timeUnits; track unit.key) {
+                    @for (unit of actualAdditionUnits; track unit.key) {
                       <label class="time-unit">
                         <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'追加する実績工数（' + unit.label + '）'" [value]="actualAdditionStepIndex(unit.key)" (input)="changeActualAdditionSlider(unit.key, $event)" />
                         <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'追加する実績工数（' + unit.label + '）'" [value]="actualAddition[unit.key]" (change)="changeActualAdditionNumber(unit.key, $event)" />
@@ -1694,17 +1694,17 @@ interface DateTimeDraft {
 
       .actual-time-input {
         display: grid;
-        gap: 2px;
+        column-gap: 12px;
+        grid-template-columns: max-content max-content;
+        row-gap: 2px;
       }
 
       .actual-total-row {
-        align-items: center;
-        display: flex;
-        gap: 12px;
-        justify-content: flex-start;
+        display: contents;
       }
 
       .history-button {
+        align-self: center;
         background: #1a2430;
         border: 1px solid #435162;
         border-radius: 6px;
@@ -1717,12 +1717,15 @@ interface DateTimeDraft {
       .addition-mark {
         color: #aeb8c3;
         font-size: 0.82rem;
+        grid-column: 1;
+        justify-self: center;
         line-height: 1;
-        transform: translateX(8px) translateY(2px);
+        transform: translateY(2px);
       }
 
       .actual-add-controls {
-        grid-template-columns: repeat(3, max-content) max-content;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(2, max-content) max-content;
         margin-top: 6px;
       }
 
@@ -2046,9 +2049,11 @@ export class TaskListNormalMockComponent {
 
   readonly timeUnits: readonly { key: TimeUnit; label: string; steps: readonly number[] }[] = [
     { key: 'days', label: '日', steps: [1, 2, 3, 4, 5, 7, 10, 15, 20] },
-    { key: 'hours', label: '時間', steps: [1, 2, 3, 4, 5, 6, 7] },
+    { key: 'hours', label: '時間', steps: [1, 2, 3, 4, 5, 6, 7, 8] },
     { key: 'minutes', label: '分', steps: [5, 10, 15, 20, 30, 45] }
   ];
+
+  readonly actualAdditionUnits = this.timeUnits.filter((unit) => unit.key !== 'days');
 
   readonly tasks: MockTask[] = [
     {
