@@ -313,13 +313,13 @@ interface DateTimeDraft {
                           <div class="time-drums">
                             <div class="time-drum" role="listbox" aria-label="時" (wheel)="rollDraftTime('hour', $event)">
                               @for (hour of visibleHourOptions(); track hour) {
-                                <button type="button" role="option" [class.selected]="draft.hour === hour" [attr.aria-selected]="draft.hour === hour" (click)="selectDraftHour(hour)">{{ padNumber(hour) }}</button>
+                                <button type="button" role="option" [class.selected]="!dateTimeClearRequested && draft.hour === hour" [attr.aria-selected]="!dateTimeClearRequested && draft.hour === hour" (click)="selectDraftHour(hour)">{{ padNumber(hour) }}</button>
                               }
                             </div>
                             <span class="time-separator" aria-hidden="true">:</span>
                             <div class="time-drum" role="listbox" aria-label="分" (wheel)="rollDraftTime('minute', $event)">
                               @for (minute of visibleMinuteOptions(); track minute) {
-                                <button type="button" role="option" [class.selected]="draft.minute === minute" [attr.aria-selected]="draft.minute === minute" (click)="selectDraftMinute(minute)">{{ padNumber(minute) }}</button>
+                                <button type="button" role="option" [class.selected]="!dateTimeClearRequested && draft.minute === minute" [attr.aria-selected]="!dateTimeClearRequested && draft.minute === minute" (click)="selectDraftMinute(minute)">{{ padNumber(minute) }}</button>
                               }
                             </div>
                           </div>
@@ -328,7 +328,8 @@ interface DateTimeDraft {
                       </div>
 
                       <div class="date-time-actions">
-                        <button class="picker-clear-button" type="button" (click)="clearDateTime(detail)">クリア</button>
+                        <button class="picker-cancel-button" type="button" (click)="closeDateTimePopover()">キャンセル</button>
+                        <button class="picker-clear-button" type="button" [attr.aria-pressed]="dateTimeClearRequested" (click)="clearDateTime()">クリア</button>
                         <button class="picker-confirm-button" type="button" (click)="confirmDateTime(detail)">決定</button>
                       </div>
                     </section>
@@ -1433,10 +1434,15 @@ interface DateTimeDraft {
         padding: 6px 18px;
       }
 
+      .picker-cancel-button,
       .picker-clear-button {
         background: transparent;
         border: 1px solid #566574;
         color: #d3dbe2;
+      }
+
+      .picker-cancel-button {
+        margin-right: auto;
       }
 
       .picker-confirm-button {
@@ -1916,6 +1922,7 @@ export class TaskListNormalMockComponent {
   actualHistoryTaskId: string | null = null;
   dateTimePopoverTaskId: string | null = null;
   dateTimeDraft: DateTimeDraft | null = null;
+  dateTimeClearRequested = false;
   calendarYear = new Date().getFullYear();
   calendarMonth = new Date().getMonth();
   private readonly actualHistoryEntries = this.createInitialActualHistory();
@@ -2412,6 +2419,7 @@ export class TaskListNormalMockComponent {
     }
     const initialDate = this.parseEventAt(task.eventAt) ?? this.roundToFiveMinutes(new Date());
     this.dateTimeDraft = this.dateToDraft(initialDate);
+    this.dateTimeClearRequested = false;
     this.calendarYear = initialDate.getFullYear();
     this.calendarMonth = initialDate.getMonth();
     this.dateTimePopoverTaskId = task.id;
@@ -2420,6 +2428,7 @@ export class TaskListNormalMockComponent {
   closeDateTimePopover(): void {
     this.dateTimePopoverTaskId = null;
     this.dateTimeDraft = null;
+    this.dateTimeClearRequested = false;
   }
 
   calendarMonthLabel(): string {
@@ -2451,10 +2460,12 @@ export class TaskListNormalMockComponent {
       month: this.calendarMonth,
       day
     };
+    this.dateTimeClearRequested = false;
   }
 
   isDraftDay(day: number): boolean {
-    return !!this.dateTimeDraft
+    return !this.dateTimeClearRequested
+      && !!this.dateTimeDraft
       && this.dateTimeDraft.year === this.calendarYear
       && this.dateTimeDraft.month === this.calendarMonth
       && this.dateTimeDraft.day === day;
@@ -2484,6 +2495,7 @@ export class TaskListNormalMockComponent {
       month: today.getMonth(),
       day: today.getDate()
     };
+    this.dateTimeClearRequested = false;
   }
 
   setDraftCurrentTime(): void {
@@ -2496,6 +2508,7 @@ export class TaskListNormalMockComponent {
       hour: current.getHours(),
       minute: current.getMinutes()
     };
+    this.dateTimeClearRequested = false;
   }
 
   visibleHourOptions(): number[] {
@@ -2511,6 +2524,7 @@ export class TaskListNormalMockComponent {
       return;
     }
     this.dateTimeDraft = { ...this.dateTimeDraft, hour };
+    this.dateTimeClearRequested = false;
   }
 
   selectDraftMinute(minute: number): void {
@@ -2518,6 +2532,7 @@ export class TaskListNormalMockComponent {
       return;
     }
     this.dateTimeDraft = { ...this.dateTimeDraft, minute };
+    this.dateTimeClearRequested = false;
   }
 
   rollDraftTime(part: 'hour' | 'minute', event: WheelEvent): void {
@@ -2530,15 +2545,20 @@ export class TaskListNormalMockComponent {
     const direction = event.deltaY > 0 ? 1 : -1;
     const value = (this.dateTimeDraft[part] + direction * step + range) % range;
     this.dateTimeDraft = { ...this.dateTimeDraft, [part]: value };
+    this.dateTimeClearRequested = false;
   }
 
-  clearDateTime(task: MockTask): void {
-    task.eventAt = undefined;
-    task.eventLabel = undefined;
-    this.closeDateTimePopover();
+  clearDateTime(): void {
+    this.dateTimeClearRequested = true;
   }
 
   confirmDateTime(task: MockTask): void {
+    if (this.dateTimeClearRequested) {
+      task.eventAt = undefined;
+      task.eventLabel = undefined;
+      this.closeDateTimePopover();
+      return;
+    }
     if (!this.dateTimeDraft) {
       return;
     }
