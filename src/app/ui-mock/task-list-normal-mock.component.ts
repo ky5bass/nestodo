@@ -1936,6 +1936,7 @@ export class TaskListNormalMockComponent {
   dateTimePopoverTaskId: string | null = null;
   dateTimeDraft: DateTimeDraft | null = null;
   dateTimeClearRequested = false;
+  private timeWheelAccumulator: Record<'hour' | 'minute', number> = { hour: 0, minute: 0 };
   calendarYear = new Date().getFullYear();
   calendarMonth = new Date().getMonth();
   private readonly actualHistoryEntries = this.createInitialActualHistory();
@@ -2433,6 +2434,7 @@ export class TaskListNormalMockComponent {
     const initialDate = this.parseEventAt(task.eventAt) ?? this.roundToFiveMinutes(new Date());
     this.dateTimeDraft = this.dateToDraft(initialDate);
     this.dateTimeClearRequested = false;
+    this.timeWheelAccumulator = { hour: 0, minute: 0 };
     this.calendarYear = initialDate.getFullYear();
     this.calendarMonth = initialDate.getMonth();
     this.dateTimePopoverTaskId = task.id;
@@ -2442,6 +2444,7 @@ export class TaskListNormalMockComponent {
     this.dateTimePopoverTaskId = null;
     this.dateTimeDraft = null;
     this.dateTimeClearRequested = false;
+    this.timeWheelAccumulator = { hour: 0, minute: 0 };
   }
 
   calendarMonthLabel(): string {
@@ -2557,6 +2560,14 @@ export class TaskListNormalMockComponent {
     const step = part === 'hour' ? 1 : 5;
     const maximum = part === 'hour' ? 23 : 55;
     const direction = event.deltaY > 0 ? 1 : -1;
+    const accumulated = this.timeWheelAccumulator[part];
+    this.timeWheelAccumulator[part] = accumulated !== 0 && Math.sign(accumulated) !== direction
+      ? direction
+      : accumulated + direction;
+    if (Math.abs(this.timeWheelAccumulator[part]) < 4) {
+      return;
+    }
+    this.timeWheelAccumulator[part] = 0;
     const value = Math.max(0, Math.min(maximum, this.dateTimeDraft[part] + direction * step));
     if (value === this.dateTimeDraft[part]) {
       return;
