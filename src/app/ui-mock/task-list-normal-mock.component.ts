@@ -185,7 +185,7 @@ interface DateTimeDraft {
       </section>
 
       @if (selectedTask(); as detail) {
-        <aside class="detail-panel" aria-label="タスク詳細" (click)="$event.stopPropagation()">
+        <aside class="detail-panel" aria-label="タスク詳細" (click)="handleDetailPanelClick($event)">
           <header class="panel-header">
             <div
               class="title-input"
@@ -1264,6 +1264,12 @@ interface DateTimeDraft {
         grid-template-columns: minmax(230px, 1fr) 136px;
       }
 
+      .calendar-pane,
+      .time-pane {
+        display: flex;
+        flex-direction: column;
+      }
+
       .calendar-header {
         align-items: center;
         display: grid;
@@ -1367,7 +1373,7 @@ interface DateTimeDraft {
       .time-drum {
         background: #101820;
         border-block: 1px solid #33404d;
-        height: 146px;
+        height: 242px;
         overflow-y: auto;
         overscroll-behavior: contain;
         scroll-snap-type: y mandatory;
@@ -1379,7 +1385,8 @@ interface DateTimeDraft {
       .time-drum::after {
         content: '';
         display: block;
-        height: 49px;
+        height: 97px;
+        flex: 0 0 97px;
         scroll-snap-align: none;
       }
 
@@ -1422,7 +1429,7 @@ interface DateTimeDraft {
         cursor: pointer;
         font: inherit;
         font-size: 0.82rem;
-        margin-top: 10px;
+        margin-top: auto;
         min-height: 32px;
         width: 100%;
       }
@@ -2229,6 +2236,14 @@ export class TaskListNormalMockComponent {
       return;
     }
     this.toggleDetail(task.id);
+  }
+
+  handleDetailPanelClick(event: MouseEvent): void {
+    event.stopPropagation();
+    const target = event.target as HTMLElement;
+    if (this.dateTimePopoverTaskId && !target.closest('.date-time-control')) {
+      this.closeDateTimePopover();
+    }
   }
 
   clearSelection(): void {
