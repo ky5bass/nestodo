@@ -311,15 +311,15 @@ interface DateTimeDraft {
 
                         <div class="time-pane">
                           <div class="time-drums">
-                            <div class="time-drum" role="listbox" aria-label="時" (scroll)="changeDraftFromDrum('hour', $event)">
-                              @for (hour of hours; track hour) {
-                                <button type="button" role="option" [class.selected]="draft.hour === hour" [attr.aria-selected]="draft.hour === hour" (click)="selectDraftHour(hour, $event)">{{ padNumber(hour) }}</button>
+                            <div class="time-drum" role="listbox" aria-label="時" (wheel)="rollDraftTime('hour', $event)">
+                              @for (hour of visibleHourOptions(); track hour) {
+                                <button type="button" role="option" [class.selected]="draft.hour === hour" [attr.aria-selected]="draft.hour === hour" (click)="selectDraftHour(hour)">{{ padNumber(hour) }}</button>
                               }
                             </div>
                             <span class="time-separator" aria-hidden="true">:</span>
-                            <div class="time-drum" role="listbox" aria-label="分" (scroll)="changeDraftFromDrum('minute', $event)">
-                              @for (minute of minuteOptions; track minute) {
-                                <button type="button" role="option" [class.selected]="draft.minute === minute" [attr.aria-selected]="draft.minute === minute" (click)="selectDraftMinute(minute, $event)">{{ padNumber(minute) }}</button>
+                            <div class="time-drum" role="listbox" aria-label="分" (wheel)="rollDraftTime('minute', $event)">
+                              @for (minute of visibleMinuteOptions(); track minute) {
+                                <button type="button" role="option" [class.selected]="draft.minute === minute" [attr.aria-selected]="draft.minute === minute" (click)="selectDraftMinute(minute)">{{ padNumber(minute) }}</button>
                               }
                             </div>
                           </div>
@@ -1364,20 +1364,7 @@ interface DateTimeDraft {
         background: #101820;
         border-block: 1px solid #33404d;
         height: 242px;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        scroll-snap-type: y mandatory;
-        scrollbar-color: #40505f transparent;
-        scrollbar-width: thin;
-      }
-
-      .time-drum::before,
-      .time-drum::after {
-        content: '';
-        display: block;
-        height: 97px;
-        flex: 0 0 97px;
-        scroll-snap-align: none;
+        overflow: hidden;
       }
 
       .time-drum button {
@@ -1388,7 +1375,6 @@ interface DateTimeDraft {
         display: block;
         font: inherit;
         height: 48px;
-        scroll-snap-align: center;
         width: 100%;
       }
 
@@ -1935,8 +1921,6 @@ export class TaskListNormalMockComponent {
   private readonly actualHistoryEntries = this.createInitialActualHistory();
 
   readonly weekdays = ['日', '月', '火', '水', '木', '金', '土'] as const;
-  readonly hours = Array.from({ length: 24 }, (_, hour) => hour);
-  readonly minuteOptions = Array.from({ length: 12 }, (_, index) => index * 5);
 
   readonly timeUnits: readonly { key: TimeUnit; label: string; steps: readonly number[] }[] = [
     { key: 'days', label: '日', steps: [1, 2, 3, 4, 5, 7, 10, 15, 20] },
@@ -2431,7 +2415,6 @@ export class TaskListNormalMockComponent {
     this.calendarYear = initialDate.getFullYear();
     this.calendarMonth = initialDate.getMonth();
     this.dateTimePopoverTaskId = task.id;
-    setTimeout(() => this.centerSelectedTimeOptions());
   }
 
   closeDateTimePopover(): void {
@@ -2513,37 +2496,39 @@ export class TaskListNormalMockComponent {
       hour: current.getHours(),
       minute: current.getMinutes()
     };
-    setTimeout(() => this.centerSelectedTimeOptions());
   }
 
-  selectDraftHour(hour: number, event: Event): void {
+  visibleHourOptions(): number[] {
+    return this.visibleTimeOptions(this.dateTimeDraft?.hour ?? 0, 24, 1);
+  }
+
+  visibleMinuteOptions(): number[] {
+    return this.visibleTimeOptions(this.dateTimeDraft?.minute ?? 0, 60, 5);
+  }
+
+  selectDraftHour(hour: number): void {
     if (!this.dateTimeDraft) {
       return;
     }
     this.dateTimeDraft = { ...this.dateTimeDraft, hour };
-    this.centerTimeOption(event.currentTarget as HTMLElement);
   }
 
-  selectDraftMinute(minute: number, event: Event): void {
+  selectDraftMinute(minute: number): void {
     if (!this.dateTimeDraft) {
       return;
     }
     this.dateTimeDraft = { ...this.dateTimeDraft, minute };
-    this.centerTimeOption(event.currentTarget as HTMLElement);
   }
 
-  changeDraftFromDrum(part: 'hour' | 'minute', event: Event): void {
-    if (!this.dateTimeDraft) {
+  rollDraftTime(part: 'hour' | 'minute', event: WheelEvent): void {
+    if (!this.dateTimeDraft || event.deltaY === 0) {
       return;
     }
-    const drum = event.currentTarget as HTMLElement;
-    const optionIndex = Math.round(drum.scrollTop / 48);
-    const value = part === 'hour'
-      ? this.hours[Math.min(optionIndex, this.hours.length - 1)]
-      : this.minuteOptions[Math.min(optionIndex, this.minuteOptions.length - 1)];
-    if (value === undefined || this.dateTimeDraft[part] === value) {
-      return;
-    }
+    event.preventDefault();
+    const step = part === 'hour' ? 1 : 5;
+    const range = part === 'hour' ? 24 : 60;
+    const direction = event.deltaY > 0 ? 1 : -1;
+    const value = (this.dateTimeDraft[part] + direction * step + range) % range;
     this.dateTimeDraft = { ...this.dateTimeDraft, [part]: value };
   }
 
@@ -2929,18 +2914,8 @@ export class TaskListNormalMockComponent {
     return `${date.getFullYear()}-${this.padNumber(date.getMonth() + 1)}-${this.padNumber(date.getDate())}T${this.padNumber(date.getHours())}:${this.padNumber(date.getMinutes())}`;
   }
 
-  private centerSelectedTimeOptions(): void {
-    document.querySelectorAll<HTMLElement>('.date-time-popover .time-drum button.selected').forEach((option) => {
-      this.centerTimeOption(option);
-    });
-  }
-
-  private centerTimeOption(option: HTMLElement): void {
-    const drum = option.parentElement;
-    if (!drum) {
-      return;
-    }
-    drum.scrollTo({ top: option.offsetTop - (drum.clientHeight - option.offsetHeight) / 2, behavior: 'smooth' });
+  private visibleTimeOptions(value: number, range: number, step: number): number[] {
+    return [-2, -1, 0, 1, 2].map((offset) => (value + offset * step + range) % range);
   }
 
   private isValidProgress(value: number): boolean {
