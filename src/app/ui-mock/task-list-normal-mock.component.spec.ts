@@ -36,4 +36,99 @@ describe('TaskListNormalMockComponent', () => {
     expect(selectedOptions.map((option) => option?.textContent?.trim())).toEqual(['18', '35']);
     expect(selectedOptions.every((option) => option?.parentElement?.children.item(2) === option)).toBeTrue();
   }));
+
+  it('予定工数は決定時だけ反映し、外側クリックでは下書きを破棄する', () => {
+    TestBed.configureTestingModule({ imports: [TaskListNormalMockComponent] });
+    const fixture = TestBed.createComponent(TaskListNormalMockComponent);
+    const component = fixture.componentInstance;
+    const task = component.tasks.find((candidate) => candidate.id === 'todo-a1-1-1');
+    expect(task).toBeDefined();
+    if (!task) {
+      return;
+    }
+    component.selectedTaskId = task.id;
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    const estimatedTrigger = host.querySelectorAll<HTMLButtonElement>('.time-popover-trigger')[0];
+    const estimatedUnit = estimatedTrigger.querySelector<HTMLElement>('.metric-unit');
+    expect(getComputedStyle(estimatedTrigger).minWidth).toBe('184px');
+    expect(estimatedUnit && getComputedStyle(estimatedUnit).alignSelf).toBe('baseline');
+    expect(estimatedUnit && getComputedStyle(estimatedUnit).transform).toBe('none');
+    estimatedTrigger.click();
+    fixture.detectChanges();
+
+    const hourInput = host.querySelectorAll<HTMLInputElement>('.time-popover .time-number')[1];
+    hourInput.value = '4';
+    hourInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(task.estimated).toBe('3時間');
+
+    host.querySelector<HTMLElement>('.detail-top-row')?.click();
+    fixture.detectChanges();
+    expect(host.querySelector('.time-popover')).toBeNull();
+    expect(task.estimated).toBe('3時間');
+
+    estimatedTrigger.click();
+    fixture.detectChanges();
+    const reopenedHourInput = host.querySelectorAll<HTMLInputElement>('.time-popover .time-number')[1];
+    reopenedHourInput.value = '4';
+    reopenedHourInput.dispatchEvent(new Event('change'));
+    host.querySelector<HTMLButtonElement>('.time-popover .picker-confirm-button')?.click();
+    fixture.detectChanges();
+
+    expect(task.estimated).toBe('4時間');
+    expect(host.querySelector('.time-popover')).toBeNull();
+  });
+
+  it('実績工数の修正をポップオーバーで行い、モーダルには履歴だけを表示する', () => {
+    TestBed.configureTestingModule({ imports: [TaskListNormalMockComponent] });
+    const fixture = TestBed.createComponent(TaskListNormalMockComponent);
+    const component = fixture.componentInstance;
+    const task = component.tasks.find((candidate) => candidate.id === 'todo-a1-1-1');
+    expect(task).toBeDefined();
+    if (!task) {
+      return;
+    }
+    component.selectedTaskId = task.id;
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    const actualTrigger = host.querySelectorAll<HTMLButtonElement>('.time-popover-trigger')[1];
+    actualTrigger.click();
+    fixture.detectChanges();
+    const detailPanelBounds = host.querySelector<HTMLElement>('.detail-panel')?.getBoundingClientRect();
+    const timePopoverBounds = host.querySelector<HTMLElement>('.time-popover')?.getBoundingClientRect();
+    expect(detailPanelBounds).toBeDefined();
+    expect(timePopoverBounds).toBeDefined();
+    if (detailPanelBounds && timePopoverBounds) {
+      expect(timePopoverBounds.left).toBeGreaterThanOrEqual(detailPanelBounds.left);
+      expect(timePopoverBounds.right).toBeLessThanOrEqual(detailPanelBounds.right);
+    }
+    const hourInput = host.querySelectorAll<HTMLInputElement>('.time-popover .time-number')[1];
+    const minuteInput = host.querySelectorAll<HTMLInputElement>('.time-popover .time-number')[2];
+    hourInput.value = '3';
+    hourInput.dispatchEvent(new Event('change'));
+    minuteInput.value = '0';
+    minuteInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    host.querySelector<HTMLButtonElement>('.time-popover .picker-confirm-button')?.click();
+    fixture.detectChanges();
+
+    expect(task.actual).toBe('3時間');
+    expect(component.actualHistoryFor(task).at(-1)?.operation).toContain('修正: +30分');
+
+    const historyButton = host.querySelector<HTMLButtonElement>('.history-button');
+    expect(historyButton).not.toBeNull();
+    if (!historyButton) {
+      return;
+    }
+    expect(historyButton.textContent?.trim()).toBe('履歴');
+    historyButton.click();
+    fixture.detectChanges();
+
+    expect(host.querySelector('#actual-history-title')?.textContent?.trim()).toBe('実績工数の履歴');
+    expect(host.querySelector('.actual-history-modal .time-range')).toBeNull();
+    expect(host.querySelector('.actual-history-modal .modal-confirm-button')).toBeNull();
+  });
 });

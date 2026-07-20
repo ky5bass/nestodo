@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component } from '@angular/core';
 
 type TaskKind = 'todo' | 'schedule';
@@ -52,6 +53,7 @@ interface DateTimeDraft {
 @Component({
   selector: 'app-task-list-normal-mock',
   standalone: true,
+  imports: [NgTemplateOutlet],
   template: `
     <header class="mock-header" (click)="clearSelection()">
       <button class="menu-button" type="button" aria-label="メニューを開く">
@@ -344,15 +346,23 @@ interface DateTimeDraft {
                   }
                 </div>
               </div>
-              <div class="field horizontal-field">
+              <div class="field horizontal-field time-popover-field">
                 <span>予定工数</span>
-                <div class="time-input">
-                  @for (unit of timeUnits; track unit.key) {
-                    <label class="time-unit">
-                      <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'予定工数（' + unit.label + '）'" [value]="timeStepIndex(detail.estimated, unit.key)" (input)="changeTimeSlider(detail, 'estimated', unit.key, $event)" />
-                      <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'予定工数（' + unit.label + '）'" [value]="timePart(detail.estimated, unit.key)" (change)="changeTimeNumber(detail, 'estimated', unit.key, $event)" />
-                      <span class="time-unit-label">{{ unit.label }}</span>
-                    </label>
+                <div class="time-popover-control">
+                  <button
+                    class="time-popover-trigger metric"
+                    type="button"
+                    aria-haspopup="dialog"
+                    [attr.aria-expanded]="timePopoverIsOpen(detail, 'estimated')"
+                    aria-label="予定工数を設定"
+                    (click)="toggleTimePopover(detail, 'estimated', $event)"
+                  >
+                    @for (part of metricParts(detail.estimated || '0分'); track $index) {
+                      <span [class.metric-unit]="part.unit">{{ part.text }}</span>
+                    }
+                  </button>
+                  @if (timePopoverIsOpen(detail, 'estimated')) {
+                    <ng-container [ngTemplateOutlet]="timePopover" [ngTemplateOutletContext]="{ task: detail, field: 'estimated', actionLabel: '決定' }" />
                   }
                 </div>
               </div>
@@ -392,16 +402,28 @@ interface DateTimeDraft {
                   </label>
                 </div>
               </div>
-              <div class="field horizontal-field">
+              <div class="field horizontal-field time-popover-field">
                 <span>実績工数</span>
                 <div class="actual-time-input">
                   <div class="actual-total-row">
-                    <div class="actual-total metric" aria-label="現在の実績工数">
-                      @for (part of metricParts(detail.actual || '0分'); track $index) {
-                        <span [class.metric-unit]="part.unit">{{ part.text }}</span>
+                    <div class="time-popover-control">
+                      <button
+                        class="time-popover-trigger metric"
+                        type="button"
+                        aria-haspopup="dialog"
+                        [attr.aria-expanded]="timePopoverIsOpen(detail, 'actual')"
+                        aria-label="実績工数を修正"
+                        (click)="toggleTimePopover(detail, 'actual', $event)"
+                      >
+                        @for (part of metricParts(detail.actual || '0分'); track $index) {
+                          <span [class.metric-unit]="part.unit">{{ part.text }}</span>
+                        }
+                      </button>
+                      @if (timePopoverIsOpen(detail, 'actual')) {
+                        <ng-container [ngTemplateOutlet]="timePopover" [ngTemplateOutletContext]="{ task: detail, field: 'actual', actionLabel: '修正' }" />
                       }
                     </div>
-                    <button class="history-button" type="button" (click)="openActualHistory(detail)">履歴と修正</button>
+                    <button class="history-button" type="button" (click)="openActualHistory(detail)">履歴</button>
                   </div>
                   <div class="addition-mark" aria-hidden="true">＋</div>
                   <div class="time-input actual-add-controls">
@@ -447,10 +469,35 @@ interface DateTimeDraft {
         </aside>
       }
 
+      <ng-template #timePopover let-task="task" let-field="field" let-actionLabel="actionLabel">
+        <section
+          class="time-popover"
+          role="dialog"
+          aria-modal="false"
+          [attr.aria-label]="field === 'estimated' ? '予定工数を設定' : '実績工数を修正'"
+          (click)="$event.stopPropagation()"
+          (keydown.escape)="closeTimePopover()"
+        >
+          <div class="time-input">
+            @for (unit of timeUnits; track unit.key) {
+              <label class="time-unit">
+                <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="(field === 'estimated' ? '予定工数' : '修正後の実績工数') + '（' + unit.label + '）'" [value]="timePopoverStepIndex(unit.key)" (input)="changeTimePopoverSlider(unit.key, $event)" />
+                <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="(field === 'estimated' ? '予定工数' : '修正後の実績工数') + '（' + unit.label + '）'" [value]="timePopoverDraft[unit.key]" (change)="changeTimePopoverNumber(unit.key, $event)" />
+                <span class="time-unit-label">{{ unit.label }}</span>
+              </label>
+            }
+          </div>
+          <div class="time-popover-actions">
+            <button class="picker-cancel-button" type="button" (click)="closeTimePopover()">キャンセル</button>
+            <button class="picker-confirm-button" type="button" [disabled]="field === 'actual' && !timePopoverValueChanged(task, field)" (click)="confirmTimePopover(task, field)">{{ actionLabel }}</button>
+          </div>
+        </section>
+      </ng-template>
+
       @if (actualHistoryTask(); as historyTask) {
         <div class="modal-backdrop" role="presentation" (click)="closeActualHistory($event)">
           <section class="actual-history-modal" role="dialog" aria-modal="true" aria-labelledby="actual-history-title" (click)="$event.stopPropagation()">
-            <h2 id="actual-history-title">実績工数の履歴と修正</h2>
+            <h2 id="actual-history-title">実績工数の履歴</h2>
             <div class="history-table-wrap">
               <table class="history-table">
                 <colgroup>
@@ -482,21 +529,8 @@ interface DateTimeDraft {
                 </tbody>
               </table>
             </div>
-            <div class="field history-correction-field">
-              <span>実績工数を修正</span>
-              <div class="time-input history-time-input">
-                @for (unit of timeUnits; track unit.key) {
-                  <label class="time-unit">
-                    <input class="time-range" type="range" min="0" [max]="unit.steps.length" [attr.aria-label]="'修正後の実績工数（' + unit.label + '）'" [value]="actualCorrectionStepIndex(unit.key)" (input)="changeActualCorrectionSlider(unit.key, $event)" />
-                    <input class="time-number" type="number" min="0" step="1" inputmode="numeric" [attr.aria-label]="'修正後の実績工数（' + unit.label + '）'" [value]="actualCorrection[unit.key]" (change)="changeActualCorrectionNumber(unit.key, $event)" />
-                    <span class="time-unit-label">{{ unit.label }}</span>
-                  </label>
-                }
-              </div>
-            </div>
             <div class="modal-actions">
-              <button class="modal-cancel-button" type="button" (click)="closeActualHistory($event)">キャンセル</button>
-              <button class="modal-confirm-button" type="button" [disabled]="!actualCorrectionChanged(historyTask)" (click)="applyActualCorrection(historyTask, $event)">修正</button>
+              <button class="modal-cancel-button" type="button" (click)="closeActualHistory($event)">閉じる</button>
             </div>
           </section>
         </div>
@@ -1218,6 +1252,85 @@ interface DateTimeDraft {
         position: relative;
       }
 
+      .time-popover-field {
+        position: relative;
+      }
+
+      .time-popover-control {
+        min-width: 0;
+        position: relative;
+      }
+
+      .time-popover-trigger {
+        align-items: baseline;
+        background: #121a24;
+        border: 1px solid #33404d;
+        border-radius: 6px;
+        color: #e8edf2;
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        justify-content: center;
+        min-height: 40px;
+        min-width: 184px;
+        padding: 7px 12px;
+      }
+
+      .time-popover-trigger .metric-unit {
+        align-self: baseline;
+        transform: none;
+      }
+
+      .time-popover-trigger:hover,
+      .time-popover-trigger:focus-visible,
+      .time-popover-trigger[aria-expanded='true'] {
+        border-color: #607286;
+        outline: none;
+      }
+
+      .time-popover {
+        background: #18222d;
+        border: 1px solid #40505f;
+        border-radius: 10px;
+        box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+        box-sizing: border-box;
+        color: #e8edf2;
+        margin-top: 6px;
+        padding: 16px;
+        position: absolute;
+        right: 0;
+        width: max-content;
+        z-index: 6;
+      }
+
+      .time-popover-actions {
+        border-top: 1px solid #33404d;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 14px;
+        padding-top: 12px;
+      }
+
+      .time-popover-actions button {
+        border-radius: 6px;
+        cursor: pointer;
+        font: inherit;
+        min-height: 36px;
+        padding: 6px 18px;
+      }
+
+      .time-popover-actions .picker-cancel-button {
+        margin-right: auto;
+      }
+
+      .time-popover-actions .picker-confirm-button:disabled {
+        background: #26333a;
+        border-color: #35444c;
+        color: #71808a;
+        cursor: not-allowed;
+      }
+
       .date-time-trigger {
         align-items: center;
         background: #121a24;
@@ -1580,20 +1693,21 @@ interface DateTimeDraft {
         gap: 2px;
       }
 
-      .actual-total {
-        color: #e8edf2;
-        font-size: 1rem;
-        justify-content: flex-start;
-        min-height: 24px;
-        padding: 0;
-      }
-
       .actual-total-row {
         align-items: center;
         display: flex;
         gap: 12px;
         justify-content: flex-start;
-        transform: translateY(6px);
+        position: relative;
+      }
+
+      .actual-total-row .time-popover-control {
+        position: static;
+      }
+
+      .actual-total-row .time-popover {
+        left: 0;
+        right: auto;
       }
 
       .history-button {
@@ -1604,7 +1718,6 @@ interface DateTimeDraft {
         cursor: pointer;
         font: inherit;
         padding: 6px 10px;
-        transform: translateY(-3px);
       }
 
       .addition-mark {
@@ -1706,14 +1819,6 @@ interface DateTimeDraft {
       .history-unit {
         font-size: 0.68em;
         padding-left: 1px;
-      }
-
-      .history-correction-field {
-        gap: 12px;
-      }
-
-      .history-time-input {
-        grid-template-columns: repeat(3, max-content);
       }
 
       .export-icon {
@@ -1931,8 +2036,10 @@ export class TaskListNormalMockComponent {
     startY: number;
   } | null = null;
   actualAddition: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
-  actualCorrection: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   actualHistoryTaskId: string | null = null;
+  timePopoverTaskId: string | null = null;
+  timePopoverField: TimeField | null = null;
+  timePopoverDraft: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   dateTimePopoverTaskId: string | null = null;
   dateTimeDraft: DateTimeDraft | null = null;
   dateTimeClearRequested = false;
@@ -2219,6 +2326,7 @@ export class TaskListNormalMockComponent {
   toggleDetail(taskId: string): void {
     this.resetProgressDraft();
     this.resetActualAddition();
+    this.closeTimePopover();
     this.closeDateTimePopover();
     this.selectedTaskId = this.selectedTaskId === taskId ? null : taskId;
   }
@@ -2239,11 +2347,15 @@ export class TaskListNormalMockComponent {
     if (this.dateTimePopoverTaskId && !target.closest('.date-time-control')) {
       this.closeDateTimePopover();
     }
+    if (this.timePopoverTaskId && !target.closest('.time-popover-control')) {
+      this.closeTimePopover();
+    }
   }
 
   clearSelection(): void {
     this.resetProgressDraft();
     this.resetActualAddition();
+    this.closeTimePopover();
     this.closeDateTimePopover();
     this.selectedTaskId = null;
   }
@@ -2431,6 +2543,7 @@ export class TaskListNormalMockComponent {
       this.closeDateTimePopover();
       return;
     }
+    this.closeTimePopover();
     const storedDate = this.parseEventAt(task.eventAt);
     const initialDate = storedDate ?? new Date();
     if (!storedDate) {
@@ -2607,33 +2720,73 @@ export class TaskListNormalMockComponent {
     return String(value).padStart(2, '0');
   }
 
-  timePart(value: string | undefined, unit: TimeUnit): number {
-    return this.timeParts(value)[unit];
+  toggleTimePopover(task: MockTask, field: TimeField, event: Event): void {
+    event.stopPropagation();
+    if (this.timePopoverIsOpen(task, field)) {
+      this.closeTimePopover();
+      return;
+    }
+    this.closeDateTimePopover();
+    this.timePopoverTaskId = task.id;
+    this.timePopoverField = field;
+    this.timePopoverDraft = { ...this.timeParts(task[field]) };
   }
 
-  timeStepIndex(value: string | undefined, unit: TimeUnit): number {
-    const part = this.timePart(value, unit);
-    if (part === 0) {
+  timePopoverIsOpen(task: MockTask, field: TimeField): boolean {
+    return this.timePopoverTaskId === task.id && this.timePopoverField === field;
+  }
+
+  closeTimePopover(): void {
+    this.timePopoverTaskId = null;
+    this.timePopoverField = null;
+    this.timePopoverDraft = { days: 0, hours: 0, minutes: 0 };
+  }
+
+  timePopoverStepIndex(unit: TimeUnit): number {
+    const value = this.timePopoverDraft[unit];
+    if (value === 0) {
       return 0;
     }
-    return this.stepsFor(unit).indexOf(this.snapTimeValue(part, unit)) + 1;
+    return this.stepsFor(unit).indexOf(this.snapTimeValue(value, unit)) + 1;
   }
 
-  changeTimeSlider(task: MockTask, field: TimeField, unit: TimeUnit, event: Event): void {
+  changeTimePopoverSlider(unit: TimeUnit, event: Event): void {
     const index = Number((event.target as HTMLInputElement).value);
     const steps = this.stepsFor(unit);
     const value = index === 0 ? 0 : (steps[index - 1] ?? steps[steps.length - 1]);
-    this.updateTimePart(task, field, unit, value);
+    this.timePopoverDraft[unit] = value;
   }
 
-  changeTimeNumber(task: MockTask, field: TimeField, unit: TimeUnit, event: Event): void {
+  changeTimePopoverNumber(unit: TimeUnit, event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = input.valueAsNumber;
     if (!Number.isInteger(value) || value < 0) {
-      input.value = String(this.timePart(task[field], unit));
+      input.value = String(this.timePopoverDraft[unit]);
       return;
     }
-    this.updateTimePart(task, field, unit, value);
+    this.timePopoverDraft[unit] = this.timePopoverField === 'estimated'
+      ? this.snapTimeValue(value, unit)
+      : value;
+  }
+
+  timePopoverValueChanged(task: MockTask, field: TimeField): boolean {
+    return this.totalMinutes(this.timePopoverDraft) !== this.totalMinutes(this.timeParts(task[field]));
+  }
+
+  confirmTimePopover(task: MockTask, field: TimeField): void {
+    if (!this.timePopoverIsOpen(task, field)) {
+      return;
+    }
+    const nextValue = this.formatTime(this.timePopoverDraft);
+    if (field === 'actual' && this.timePopoverValueChanged(task, field)) {
+      const previousMinutes = this.totalMinutes(this.timeParts(task.actual));
+      const correctedMinutes = this.totalMinutes(this.timePopoverDraft);
+      task.actual = nextValue;
+      this.appendActualHistory(task, '修正', correctedMinutes - previousMinutes, correctedMinutes);
+    } else if (field === 'estimated') {
+      task.estimated = nextValue;
+    }
+    this.closeTimePopover();
   }
 
   actualAdditionStepIndex(unit: TimeUnit): number {
@@ -2676,14 +2829,13 @@ export class TaskListNormalMockComponent {
   }
 
   openActualHistory(task: MockTask): void {
+    this.closeTimePopover();
     this.actualHistoryTaskId = task.id;
-    this.actualCorrection = { ...this.timeParts(task.actual) };
   }
 
   closeActualHistory(event?: Event): void {
     event?.stopPropagation();
     this.actualHistoryTaskId = null;
-    this.actualCorrection = { days: 0, hours: 0, minutes: 0 };
   }
 
   actualHistoryTask(): MockTask | null {
@@ -2692,46 +2844,6 @@ export class TaskListNormalMockComponent {
 
   actualHistoryFor(task: MockTask): ActualHistoryRow[] {
     return this.buildActualHistoryRows(this.actualHistoryEntries.get(task.id) ?? []);
-  }
-
-  actualCorrectionStepIndex(unit: TimeUnit): number {
-    const value = this.actualCorrection[unit];
-    if (value === 0) {
-      return 0;
-    }
-    return this.stepsFor(unit).indexOf(this.snapTimeValue(value, unit)) + 1;
-  }
-
-  changeActualCorrectionSlider(unit: TimeUnit, event: Event): void {
-    const index = Number((event.target as HTMLInputElement).value);
-    const steps = this.stepsFor(unit);
-    this.actualCorrection[unit] = index === 0 ? 0 : (steps[index - 1] ?? steps[steps.length - 1]);
-  }
-
-  changeActualCorrectionNumber(unit: TimeUnit, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = input.valueAsNumber;
-    if (!Number.isInteger(value) || value < 0) {
-      input.value = String(this.actualCorrection[unit]);
-      return;
-    }
-    this.actualCorrection[unit] = value;
-  }
-
-  actualCorrectionChanged(task: MockTask): boolean {
-    return this.totalMinutes(this.actualCorrection) !== this.totalMinutes(this.timeParts(task.actual));
-  }
-
-  applyActualCorrection(task: MockTask, event?: Event): void {
-    event?.stopPropagation();
-    if (!this.actualCorrectionChanged(task)) {
-      return;
-    }
-    const previousMinutes = this.totalMinutes(this.timeParts(task.actual));
-    const correctedMinutes = this.totalMinutes(this.actualCorrection);
-    task.actual = this.formatTime(this.partsFromTotalMinutes(correctedMinutes));
-    this.appendActualHistory(task, '修正', correctedMinutes - previousMinutes, correctedMinutes);
-    this.closeActualHistory();
   }
 
   confirmPendingAction(): void {
@@ -2975,12 +3087,6 @@ export class TaskListNormalMockComponent {
 
   private isValidProgress(value: number): boolean {
     return Number.isInteger(value) && value >= 0 && value <= 100;
-  }
-
-  private updateTimePart(task: MockTask, field: TimeField, unit: TimeUnit, value: number): void {
-    const parts = this.timeParts(task[field]);
-    parts[unit] = this.snapTimeValue(value, unit);
-    task[field] = this.formatTime(parts);
   }
 
   private timeParts(value: string | undefined): Record<TimeUnit, number> {
