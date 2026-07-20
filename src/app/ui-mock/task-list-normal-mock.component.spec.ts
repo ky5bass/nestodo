@@ -1,3 +1,5 @@
+/// <reference types="jasmine" />
+
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 
 import { TaskListNormalMockComponent } from './task-list-normal-mock.component';
