@@ -310,7 +310,6 @@ interface DateTimeDraft {
                         </div>
 
                         <div class="time-pane">
-                          <div class="time-heading"><span>時</span><span>分</span></div>
                           <div class="time-drums">
                             <div class="time-drum" role="listbox" aria-label="時" (scroll)="changeDraftFromDrum('hour', $event)">
                               @for (hour of hours; track hour) {
@@ -1353,15 +1352,6 @@ interface DateTimeDraft {
       .time-pane {
         border-left: 1px solid #33404d;
         padding-left: 16px;
-      }
-
-      .time-heading {
-        color: #8594a2;
-        display: grid;
-        font-size: 0.72rem;
-        grid-template-columns: 1fr 1fr;
-        margin-bottom: 6px;
-        text-align: center;
       }
 
       .time-drums {
