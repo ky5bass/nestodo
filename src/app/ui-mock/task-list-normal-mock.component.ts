@@ -41,6 +41,14 @@ interface ActualHistoryRow {
   cumulative: string;
 }
 
+interface DateTimeDraft {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+}
+
 @Component({
   selector: 'app-task-list-normal-mock',
   standalone: true,
@@ -253,10 +261,81 @@ interface ActualHistoryRow {
                   <button type="button" [class.active]="detail.priority === 'highest'" [attr.aria-pressed]="detail.priority === 'highest'" (click)="changePriority(detail, 'highest')">最優先</button>
                 </div>
               </div>
-              <label class="field horizontal-field">
+              <div class="field horizontal-field date-time-field">
                 <span>{{ detail.kind === 'todo' ? '期限' : '開始日時' }}</span>
-                <input type="datetime-local" step="300" [value]="eventAtValue(detail)" (click)="openDateTimePicker($event)" (change)="changeEventAt(detail, $event)" />
-              </label>
+                <div class="date-time-control">
+                  <button
+                    class="date-time-trigger"
+                    type="button"
+                    [class.empty]="!detail.eventAt"
+                    [attr.aria-expanded]="dateTimePopoverTaskId === detail.id"
+                    aria-haspopup="dialog"
+                    (click)="toggleDateTimePopover(detail, $event)"
+                  >
+                    <span>{{ eventAtDisplay(detail) }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" aria-hidden="true">
+                      <path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z" />
+                    </svg>
+                  </button>
+
+                  @if (dateTimePopoverTaskId === detail.id && dateTimeDraft; as draft) {
+                    <section class="date-time-popover" role="dialog" aria-modal="false" aria-label="日時を選択" (click)="$event.stopPropagation()" (keydown.escape)="closeDateTimePopover()">
+                      <div class="date-time-picker-body">
+                        <div class="calendar-pane">
+                          <div class="calendar-header">
+                            <button type="button" aria-label="前の月" (click)="moveCalendarMonth(-1)">‹</button>
+                            <strong>{{ calendarMonthLabel() }}</strong>
+                            <button type="button" aria-label="次の月" (click)="moveCalendarMonth(1)">›</button>
+                          </div>
+                          <div class="calendar-grid" role="grid" aria-label="カレンダー">
+                            @for (weekday of weekdays; track weekday) {
+                              <span class="weekday" aria-hidden="true">{{ weekday }}</span>
+                            }
+                            @for (cell of calendarCells(); track $index) {
+                              @if (cell === null) {
+                                <span class="calendar-blank" aria-hidden="true"></span>
+                              } @else {
+                                <button
+                                  type="button"
+                                  [class.selected]="isDraftDay(cell)"
+                                  [class.today]="isToday(cell)"
+                                  [attr.aria-label]="calendarDayLabel(cell)"
+                                  [attr.aria-pressed]="isDraftDay(cell)"
+                                  (click)="selectCalendarDay(cell)"
+                                >{{ cell }}</button>
+                              }
+                            }
+                          </div>
+                          <button class="picker-shortcut" type="button" (click)="setDraftToday()">今日</button>
+                        </div>
+
+                        <div class="time-pane">
+                          <div class="time-heading"><span>時</span><span>分</span></div>
+                          <div class="time-drums">
+                            <div class="time-drum" role="listbox" aria-label="時" (scroll)="changeDraftFromDrum('hour', $event)">
+                              @for (hour of hours; track hour) {
+                                <button type="button" role="option" [class.selected]="draft.hour === hour" [attr.aria-selected]="draft.hour === hour" (click)="selectDraftHour(hour, $event)">{{ padNumber(hour) }}</button>
+                              }
+                            </div>
+                            <span class="time-separator" aria-hidden="true">:</span>
+                            <div class="time-drum" role="listbox" aria-label="分" (scroll)="changeDraftFromDrum('minute', $event)">
+                              @for (minute of minuteOptions; track minute) {
+                                <button type="button" role="option" [class.selected]="draft.minute === minute" [attr.aria-selected]="draft.minute === minute" (click)="selectDraftMinute(minute, $event)">{{ padNumber(minute) }}</button>
+                              }
+                            </div>
+                          </div>
+                          <button class="picker-shortcut" type="button" (click)="setDraftCurrentTime()">現在時刻</button>
+                        </div>
+                      </div>
+
+                      <div class="date-time-actions">
+                        <button class="picker-clear-button" type="button" (click)="clearDateTime(detail)">クリア</button>
+                        <button class="picker-confirm-button" type="button" (click)="confirmDateTime(detail)">決定</button>
+                      </div>
+                    </section>
+                  }
+                </div>
+              </div>
               <div class="field horizontal-field">
                 <span>予定工数</span>
                 <div class="time-input">
@@ -1126,15 +1205,283 @@ interface ActualHistoryRow {
         outline-offset: -4px;
       }
 
-      .field input[type='datetime-local'] {
-        color-scheme: dark;
-        cursor: pointer;
+      .date-time-control {
+        min-width: 0;
+        position: relative;
       }
 
-      .field input[type='datetime-local']::-webkit-calendar-picker-indicator {
+      .date-time-trigger {
+        align-items: center;
+        background: #121a24;
+        border: 1px solid #33404d;
+        border-radius: 6px;
+        color: #e8edf2;
         cursor: pointer;
-        filter: brightness(0) invert(1);
-        opacity: 0.82;
+        display: flex;
+        font: inherit;
+        justify-content: space-between;
+        min-height: 40px;
+        padding: 7px 8px 7px 10px;
+        text-align: left;
+        width: 100%;
+      }
+
+      .date-time-trigger.empty {
+        color: #7e8d9d;
+      }
+
+      .date-time-trigger:hover,
+      .date-time-trigger:focus-visible {
+        border-color: #607286;
+        outline: none;
+      }
+
+      .date-time-trigger svg {
+        color: #aeb8c3;
+        flex: 0 0 22px;
+        height: 22px;
+        width: 22px;
+      }
+
+      .date-time-popover {
+        background: #18222d;
+        border: 1px solid #40505f;
+        border-radius: 10px;
+        box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+        box-sizing: border-box;
+        color: #e8edf2;
+        margin-top: 6px;
+        padding: 14px;
+        position: absolute;
+        right: 0;
+        width: min(430px, calc(100vw - 40px));
+        z-index: 5;
+      }
+
+      .date-time-picker-body {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(230px, 1fr) 136px;
+      }
+
+      .calendar-header {
+        align-items: center;
+        display: grid;
+        grid-template-columns: 36px 1fr 36px;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      .calendar-header strong {
+        font-size: 0.95rem;
+        font-weight: 650;
+      }
+
+      .calendar-header button,
+      .calendar-grid button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: #dfe6ec;
+        cursor: pointer;
+        display: flex;
+        font: inherit;
+        justify-content: center;
+      }
+
+      .calendar-header button {
+        border-radius: 6px;
+        font-size: 1.65rem;
+        height: 34px;
+        line-height: 1;
+      }
+
+      .calendar-header button:hover,
+      .calendar-header button:focus-visible,
+      .calendar-grid button:hover,
+      .calendar-grid button:focus-visible {
+        background: #273542;
+        outline: none;
+      }
+
+      .calendar-grid {
+        display: grid;
+        grid-auto-rows: 31px;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+      }
+
+      .calendar-grid .weekday {
+        color: #8594a2;
+        font-size: 0.72rem;
+        line-height: 31px;
+      }
+
+      .calendar-grid button {
+        border-radius: 50%;
+        font-size: 0.86rem;
+        height: 29px;
+        justify-self: center;
+        position: relative;
+        width: 29px;
+      }
+
+      .calendar-grid button.today::after {
+        background: #62a69e;
+        border-radius: 50%;
+        bottom: 3px;
+        content: '';
+        height: 3px;
+        left: 50%;
+        position: absolute;
+        transform: translateX(-50%);
+        width: 3px;
+      }
+
+      .calendar-grid button.selected {
+        background: #2d6f68;
+        color: #ffffff;
+        font-weight: 700;
+      }
+
+      .time-pane {
+        border-left: 1px solid #33404d;
+        padding-left: 16px;
+      }
+
+      .time-heading {
+        color: #8594a2;
+        display: grid;
+        font-size: 0.72rem;
+        grid-template-columns: 1fr 1fr;
+        margin-bottom: 6px;
+        text-align: center;
+      }
+
+      .time-drums {
+        align-items: center;
+        display: grid;
+        grid-template-columns: 48px 12px 48px;
+      }
+
+      .time-drum {
+        background: #101820;
+        border-block: 1px solid #33404d;
+        height: 146px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scroll-snap-type: y mandatory;
+        scrollbar-color: #40505f transparent;
+        scrollbar-width: thin;
+      }
+
+      .time-drum::before,
+      .time-drum::after {
+        content: '';
+        display: block;
+        height: 49px;
+        scroll-snap-align: none;
+      }
+
+      .time-drum button {
+        background: transparent;
+        border: 0;
+        color: #82909d;
+        cursor: pointer;
+        display: block;
+        font: inherit;
+        height: 48px;
+        scroll-snap-align: center;
+        width: 100%;
+      }
+
+      .time-drum button:hover,
+      .time-drum button:focus-visible {
+        background: #273542;
+        color: #e8edf2;
+        outline: none;
+      }
+
+      .time-drum button.selected {
+        background: #234b49;
+        color: #ffffff;
+        font-size: 1.08rem;
+        font-weight: 700;
+      }
+
+      .time-separator {
+        font-size: 1.2rem;
+        text-align: center;
+      }
+
+      .picker-shortcut {
+        background: transparent;
+        border: 1px solid #40505f;
+        border-radius: 6px;
+        color: #b9d9d5;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.82rem;
+        margin-top: 10px;
+        min-height: 32px;
+        width: 100%;
+      }
+
+      .picker-shortcut:hover,
+      .picker-shortcut:focus-visible {
+        background: #273542;
+        outline: 2px solid transparent;
+      }
+
+      .date-time-actions {
+        border-top: 1px solid #33404d;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 14px;
+        padding-top: 12px;
+      }
+
+      .date-time-actions button {
+        border-radius: 6px;
+        cursor: pointer;
+        font: inherit;
+        min-height: 36px;
+        padding: 6px 18px;
+      }
+
+      .picker-clear-button {
+        background: transparent;
+        border: 1px solid #566574;
+        color: #d3dbe2;
+      }
+
+      .picker-confirm-button {
+        background: #2d6f68;
+        border: 1px solid #438c84;
+        color: #ffffff;
+      }
+
+      @media (max-width: 560px) {
+        .date-time-popover {
+          left: -118px;
+          right: auto;
+        }
+
+        .date-time-picker-body {
+          grid-template-columns: 1fr;
+        }
+
+        .time-pane {
+          border-left: 0;
+          border-top: 1px solid #33404d;
+          padding-left: 0;
+          padding-top: 12px;
+        }
+
+        .time-drums {
+          justify-content: center;
+        }
       }
 
       .detail-panel input[type='number']::-webkit-inner-spin-button {
@@ -1584,7 +1931,15 @@ export class TaskListNormalMockComponent {
   actualAddition: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   actualCorrection: Record<TimeUnit, number> = { days: 0, hours: 0, minutes: 0 };
   actualHistoryTaskId: string | null = null;
+  dateTimePopoverTaskId: string | null = null;
+  dateTimeDraft: DateTimeDraft | null = null;
+  calendarYear = new Date().getFullYear();
+  calendarMonth = new Date().getMonth();
   private readonly actualHistoryEntries = this.createInitialActualHistory();
+
+  readonly weekdays = ['日', '月', '火', '水', '木', '金', '土'] as const;
+  readonly hours = Array.from({ length: 24 }, (_, hour) => hour);
+  readonly minuteOptions = Array.from({ length: 12 }, (_, index) => index * 5);
 
   readonly timeUnits: readonly { key: TimeUnit; label: string; steps: readonly number[] }[] = [
     { key: 'days', label: '日', steps: [1, 2, 3, 4, 5, 7, 10, 15, 20] },
@@ -1862,6 +2217,7 @@ export class TaskListNormalMockComponent {
   toggleDetail(taskId: string): void {
     this.resetProgressDraft();
     this.resetActualAddition();
+    this.closeDateTimePopover();
     this.selectedTaskId = this.selectedTaskId === taskId ? null : taskId;
   }
 
@@ -1878,6 +2234,7 @@ export class TaskListNormalMockComponent {
   clearSelection(): void {
     this.resetProgressDraft();
     this.resetActualAddition();
+    this.closeDateTimePopover();
     this.selectedTaskId = null;
   }
 
@@ -2047,24 +2404,165 @@ export class TaskListNormalMockComponent {
     task.priority = priority;
   }
 
-  eventAtValue(task: MockTask): string {
-    return task.eventAt ?? '';
+  eventAtDisplay(task: MockTask): string {
+    if (!task.eventAt) {
+      return '日時を選択';
+    }
+    const match = task.eventAt.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!match) {
+      return task.eventAt;
+    }
+    return `${match[1]}/${match[2]}/${match[3]} ${match[4]}:${match[5]}`;
   }
 
-  changeEventAt(task: MockTask, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = this.snapDateTimeToFiveMinutes(input.value);
-    input.value = value;
-    task.eventAt = value;
-  }
-
-  openDateTimePicker(event: Event): void {
-    const input = event.currentTarget as HTMLInputElement & { showPicker?: () => void };
-    if (!input.showPicker) {
+  toggleDateTimePopover(task: MockTask, event: Event): void {
+    event.stopPropagation();
+    if (this.dateTimePopoverTaskId === task.id) {
+      this.closeDateTimePopover();
       return;
     }
-    event.preventDefault();
-    input.showPicker();
+    const initialDate = this.parseEventAt(task.eventAt) ?? this.roundToFiveMinutes(new Date());
+    this.dateTimeDraft = this.dateToDraft(initialDate);
+    this.calendarYear = initialDate.getFullYear();
+    this.calendarMonth = initialDate.getMonth();
+    this.dateTimePopoverTaskId = task.id;
+    setTimeout(() => this.centerSelectedTimeOptions());
+  }
+
+  closeDateTimePopover(): void {
+    this.dateTimePopoverTaskId = null;
+    this.dateTimeDraft = null;
+  }
+
+  calendarMonthLabel(): string {
+    return `${this.calendarYear}年 ${this.calendarMonth + 1}月`;
+  }
+
+  calendarCells(): (number | null)[] {
+    const firstWeekday = new Date(this.calendarYear, this.calendarMonth, 1).getDay();
+    const daysInMonth = new Date(this.calendarYear, this.calendarMonth + 1, 0).getDate();
+    return [
+      ...Array.from({ length: firstWeekday }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, index) => index + 1)
+    ];
+  }
+
+  moveCalendarMonth(offset: number): void {
+    const nextMonth = new Date(this.calendarYear, this.calendarMonth + offset, 1);
+    this.calendarYear = nextMonth.getFullYear();
+    this.calendarMonth = nextMonth.getMonth();
+  }
+
+  selectCalendarDay(day: number): void {
+    if (!this.dateTimeDraft) {
+      return;
+    }
+    this.dateTimeDraft = {
+      ...this.dateTimeDraft,
+      year: this.calendarYear,
+      month: this.calendarMonth,
+      day
+    };
+  }
+
+  isDraftDay(day: number): boolean {
+    return !!this.dateTimeDraft
+      && this.dateTimeDraft.year === this.calendarYear
+      && this.dateTimeDraft.month === this.calendarMonth
+      && this.dateTimeDraft.day === day;
+  }
+
+  isToday(day: number): boolean {
+    const today = new Date();
+    return today.getFullYear() === this.calendarYear
+      && today.getMonth() === this.calendarMonth
+      && today.getDate() === day;
+  }
+
+  calendarDayLabel(day: number): string {
+    return `${this.calendarYear}年${this.calendarMonth + 1}月${day}日`;
+  }
+
+  setDraftToday(): void {
+    if (!this.dateTimeDraft) {
+      return;
+    }
+    const today = new Date();
+    this.calendarYear = today.getFullYear();
+    this.calendarMonth = today.getMonth();
+    this.dateTimeDraft = {
+      ...this.dateTimeDraft,
+      year: today.getFullYear(),
+      month: today.getMonth(),
+      day: today.getDate()
+    };
+  }
+
+  setDraftCurrentTime(): void {
+    if (!this.dateTimeDraft) {
+      return;
+    }
+    const current = this.roundToFiveMinutes(new Date());
+    this.dateTimeDraft = {
+      ...this.dateTimeDraft,
+      hour: current.getHours(),
+      minute: current.getMinutes()
+    };
+    setTimeout(() => this.centerSelectedTimeOptions());
+  }
+
+  selectDraftHour(hour: number, event: Event): void {
+    if (!this.dateTimeDraft) {
+      return;
+    }
+    this.dateTimeDraft = { ...this.dateTimeDraft, hour };
+    this.centerTimeOption(event.currentTarget as HTMLElement);
+  }
+
+  selectDraftMinute(minute: number, event: Event): void {
+    if (!this.dateTimeDraft) {
+      return;
+    }
+    this.dateTimeDraft = { ...this.dateTimeDraft, minute };
+    this.centerTimeOption(event.currentTarget as HTMLElement);
+  }
+
+  changeDraftFromDrum(part: 'hour' | 'minute', event: Event): void {
+    if (!this.dateTimeDraft) {
+      return;
+    }
+    const drum = event.currentTarget as HTMLElement;
+    const optionIndex = Math.round(drum.scrollTop / 48);
+    const value = part === 'hour'
+      ? this.hours[Math.min(optionIndex, this.hours.length - 1)]
+      : this.minuteOptions[Math.min(optionIndex, this.minuteOptions.length - 1)];
+    if (value === undefined || this.dateTimeDraft[part] === value) {
+      return;
+    }
+    this.dateTimeDraft = { ...this.dateTimeDraft, [part]: value };
+  }
+
+  clearDateTime(task: MockTask): void {
+    task.eventAt = undefined;
+    task.eventLabel = undefined;
+    this.closeDateTimePopover();
+  }
+
+  confirmDateTime(task: MockTask): void {
+    if (!this.dateTimeDraft) {
+      return;
+    }
+    const { year, month, day, hour, minute } = this.dateTimeDraft;
+    const date = new Date(year, month, day, hour, minute);
+    if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+      return;
+    }
+    task.eventAt = this.formatLocalDateTime(date);
+    this.closeDateTimePopover();
+  }
+
+  padNumber(value: number): string {
+    return String(value).padStart(2, '0');
   }
 
   timePart(value: string | undefined, unit: TimeUnit): number {
@@ -2396,21 +2894,48 @@ export class TaskListNormalMockComponent {
     return `${this.formatHistoryDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
-  private snapDateTimeToFiveMinutes(value: string): string {
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  private parseEventAt(value: string | undefined): Date | null {
+    const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
     if (!match) {
-      return value;
+      return null;
     }
-    const [, year, month, day, hours, minutes] = match;
-    const date = new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hours),
-      Math.round(Number(minutes) / 5) * 5
-    );
-    const pad = (part: number): string => String(part).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private roundToFiveMinutes(value: Date): Date {
+    const rounded = new Date(value);
+    rounded.setSeconds(0, 0);
+    rounded.setMinutes(Math.round(rounded.getMinutes() / 5) * 5);
+    return rounded;
+  }
+
+  private dateToDraft(date: Date): DateTimeDraft {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth(),
+      day: date.getDate(),
+      hour: date.getHours(),
+      minute: date.getMinutes()
+    };
+  }
+
+  private formatLocalDateTime(date: Date): string {
+    return `${date.getFullYear()}-${this.padNumber(date.getMonth() + 1)}-${this.padNumber(date.getDate())}T${this.padNumber(date.getHours())}:${this.padNumber(date.getMinutes())}`;
+  }
+
+  private centerSelectedTimeOptions(): void {
+    document.querySelectorAll<HTMLElement>('.date-time-popover .time-drum button.selected').forEach((option) => {
+      this.centerTimeOption(option);
+    });
+  }
+
+  private centerTimeOption(option: HTMLElement): void {
+    const drum = option.parentElement;
+    if (!drum) {
+      return;
+    }
+    drum.scrollTo({ top: option.offsetTop - (drum.clientHeight - option.offsetHeight) / 2, behavior: 'smooth' });
   }
 
   private isValidProgress(value: number): boolean {
