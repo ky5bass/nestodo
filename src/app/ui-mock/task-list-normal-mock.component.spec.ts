@@ -54,7 +54,7 @@ describe('TaskListNormalMockComponent', () => {
     const estimatedUnit = estimatedTrigger.querySelector<HTMLElement>('.metric-unit');
     expect(getComputedStyle(estimatedTrigger).minWidth).toBe('184px');
     expect(estimatedUnit && getComputedStyle(estimatedUnit).alignSelf).toBe('baseline');
-    expect(estimatedUnit && getComputedStyle(estimatedUnit).transform).toBe('none');
+    expect(estimatedUnit && getComputedStyle(estimatedUnit).transform).toBe('matrix(1, 0, 0, 1, 0, 2)');
     estimatedTrigger.click();
     fixture.detectChanges();
 
@@ -94,7 +94,14 @@ describe('TaskListNormalMockComponent', () => {
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
 
-    const actualTrigger = host.querySelectorAll<HTMLButtonElement>('.time-popover-trigger')[1];
+    const timePopoverTriggers = host.querySelectorAll<HTMLButtonElement>('.time-popover-trigger');
+    const estimatedTrigger = timePopoverTriggers[0];
+    const actualTrigger = timePopoverTriggers[1];
+    estimatedTrigger.click();
+    fixture.detectChanges();
+    const estimatedPopoverLeft = host.querySelector<HTMLElement>('.time-popover')?.getBoundingClientRect().left;
+    estimatedTrigger.click();
+    fixture.detectChanges();
     actualTrigger.click();
     fixture.detectChanges();
     const detailPanelBounds = host.querySelector<HTMLElement>('.detail-panel')?.getBoundingClientRect();
@@ -102,6 +109,7 @@ describe('TaskListNormalMockComponent', () => {
     expect(detailPanelBounds).toBeDefined();
     expect(timePopoverBounds).toBeDefined();
     if (detailPanelBounds && timePopoverBounds) {
+      expect(timePopoverBounds.left).toBeCloseTo(estimatedPopoverLeft ?? Number.NaN, 0);
       expect(timePopoverBounds.left).toBeGreaterThanOrEqual(detailPanelBounds.left);
       expect(timePopoverBounds.right).toBeLessThanOrEqual(detailPanelBounds.right);
     }

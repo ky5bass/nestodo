@@ -1278,7 +1278,10 @@ interface DateTimeDraft {
 
       .time-popover-trigger .metric-unit {
         align-self: baseline;
-        transform: none;
+      }
+
+      .time-popover-trigger > span {
+        transform: translateY(2px);
       }
 
       .time-popover-trigger:hover,
@@ -1298,7 +1301,8 @@ interface DateTimeDraft {
         margin-top: 6px;
         padding: 16px;
         position: absolute;
-        right: 0;
+        left: 0;
+        right: auto;
         width: max-content;
         z-index: 6;
       }
@@ -1698,16 +1702,6 @@ interface DateTimeDraft {
         display: flex;
         gap: 12px;
         justify-content: flex-start;
-        position: relative;
-      }
-
-      .actual-total-row .time-popover-control {
-        position: static;
-      }
-
-      .actual-total-row .time-popover {
-        left: 0;
-        right: auto;
       }
 
       .history-button {
