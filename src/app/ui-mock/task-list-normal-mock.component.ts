@@ -2438,10 +2438,11 @@ export class TaskListNormalMockComponent {
   calendarCells(): (number | null)[] {
     const firstWeekday = new Date(this.calendarYear, this.calendarMonth, 1).getDay();
     const daysInMonth = new Date(this.calendarYear, this.calendarMonth + 1, 0).getDate();
-    return [
+    const cells = [
       ...Array.from({ length: firstWeekday }, () => null),
       ...Array.from({ length: daysInMonth }, (_, index) => index + 1)
     ];
+    return [...cells, ...Array.from({ length: 42 - cells.length }, () => null)];
   }
 
   moveCalendarMonth(offset: number): void {
