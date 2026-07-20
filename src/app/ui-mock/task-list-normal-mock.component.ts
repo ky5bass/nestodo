@@ -406,26 +406,28 @@ interface DateTimeDraft {
                 <span>実績工数</span>
                 <div class="actual-time-input">
                   <div class="actual-total-row">
-                    <div class="time-popover-control">
-                      <button
-                        class="time-popover-trigger metric"
-                        type="button"
-                        aria-haspopup="dialog"
-                        [attr.aria-expanded]="timePopoverIsOpen(detail, 'actual')"
-                        aria-label="実績工数を修正"
-                        (click)="toggleTimePopover(detail, 'actual', $event)"
-                      >
-                        @for (part of metricParts(detail.actual || '0分'); track $index) {
-                          <span [class.metric-unit]="part.unit">{{ part.text }}</span>
+                    <div class="actual-time-anchor">
+                      <div class="time-popover-control">
+                        <button
+                          class="time-popover-trigger metric"
+                          type="button"
+                          aria-haspopup="dialog"
+                          [attr.aria-expanded]="timePopoverIsOpen(detail, 'actual')"
+                          aria-label="実績工数を修正"
+                          (click)="toggleTimePopover(detail, 'actual', $event)"
+                        >
+                          @for (part of metricParts(detail.actual || '0分'); track $index) {
+                            <span [class.metric-unit]="part.unit">{{ part.text }}</span>
+                          }
+                        </button>
+                        @if (timePopoverIsOpen(detail, 'actual')) {
+                          <ng-container [ngTemplateOutlet]="timePopover" [ngTemplateOutletContext]="{ task: detail, field: 'actual', actionLabel: '修正' }" />
                         }
-                      </button>
-                      @if (timePopoverIsOpen(detail, 'actual')) {
-                        <ng-container [ngTemplateOutlet]="timePopover" [ngTemplateOutletContext]="{ task: detail, field: 'actual', actionLabel: '修正' }" />
-                      }
+                      </div>
+                      <div class="addition-mark" aria-hidden="true">＋</div>
                     </div>
                     <button class="history-button" type="button" (click)="openActualHistory(detail)">履歴</button>
                   </div>
-                  <div class="addition-mark" aria-hidden="true">＋</div>
                   <div class="time-input actual-add-controls">
                     @for (unit of actualAdditionUnits; track unit.key) {
                       <label class="time-unit">
@@ -1694,13 +1696,19 @@ interface DateTimeDraft {
 
       .actual-time-input {
         display: grid;
-        column-gap: 12px;
-        grid-template-columns: max-content max-content;
         row-gap: 2px;
       }
 
       .actual-total-row {
-        display: contents;
+        align-items: start;
+        display: flex;
+        gap: 8px;
+      }
+
+      .actual-time-anchor {
+        display: grid;
+        justify-items: center;
+        row-gap: 2px;
       }
 
       .history-button {
@@ -1717,14 +1725,11 @@ interface DateTimeDraft {
       .addition-mark {
         color: #aeb8c3;
         font-size: 0.82rem;
-        grid-column: 1;
-        justify-self: center;
         line-height: 1;
         transform: translateY(2px);
       }
 
       .actual-add-controls {
-        grid-column: 1 / -1;
         grid-template-columns: repeat(2, max-content) max-content;
         margin-top: 6px;
       }

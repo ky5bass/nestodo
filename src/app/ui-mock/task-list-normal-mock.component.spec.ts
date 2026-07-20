@@ -153,11 +153,20 @@ describe('TaskListNormalMockComponent', () => {
       .map((label) => label.textContent?.trim());
     const hourSlider = additionControls?.querySelector<HTMLInputElement>('.time-range[aria-label*="時間"]');
     const additionMark = host.querySelector<HTMLElement>('.addition-mark');
+    const actualTrigger = host.querySelector<HTMLButtonElement>('.actual-total-row .time-popover-trigger');
+    const actualTotalRow = host.querySelector<HTMLElement>('.actual-total-row');
 
     expect(unitLabels).toEqual(['時間', '分']);
     expect(hourSlider?.max).toBe('8');
     expect(component.actualAdditionUnits.find((unit) => unit.key === 'hours')?.steps).toContain(8);
-    expect(additionMark && getComputedStyle(additionMark).gridColumnStart).toBe('1');
-    expect(additionMark && getComputedStyle(additionMark).justifySelf).toBe('center');
+    expect(additionMark).not.toBeNull();
+    expect(actualTrigger).not.toBeNull();
+    if (additionMark && actualTrigger) {
+      const additionMarkBounds = additionMark.getBoundingClientRect();
+      const actualTriggerBounds = actualTrigger.getBoundingClientRect();
+      expect(additionMarkBounds.left + additionMarkBounds.width / 2)
+        .toBeCloseTo(actualTriggerBounds.left + actualTriggerBounds.width / 2, 0);
+    }
+    expect(actualTotalRow && getComputedStyle(actualTotalRow).gap).toBe('4px');
   });
 });
