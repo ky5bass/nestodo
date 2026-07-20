@@ -312,14 +312,22 @@ interface DateTimeDraft {
                         <div class="time-pane">
                           <div class="time-drums">
                             <div class="time-drum" role="listbox" aria-label="時" (wheel)="rollDraftTime('hour', $event)">
-                              @for (hour of visibleHourOptions(); track hour) {
-                                <button type="button" role="option" [class.selected]="!dateTimeClearRequested && draft.hour === hour" [attr.aria-selected]="!dateTimeClearRequested && draft.hour === hour" (click)="selectDraftHour(hour)">{{ padNumber(hour) }}</button>
+                              @for (hour of visibleHourOptions(); track $index) {
+                                @if (hour === null) {
+                                  <span class="time-option-blank" aria-hidden="true"></span>
+                                } @else {
+                                  <button type="button" role="option" [class.selected]="!dateTimeClearRequested && draft.hour === hour" [attr.aria-selected]="!dateTimeClearRequested && draft.hour === hour" (click)="selectDraftHour(hour)">{{ padNumber(hour) }}</button>
+                                }
                               }
                             </div>
                             <span class="time-separator" aria-hidden="true">:</span>
                             <div class="time-drum" role="listbox" aria-label="分" (wheel)="rollDraftTime('minute', $event)">
-                              @for (minute of visibleMinuteOptions(); track minute) {
-                                <button type="button" role="option" [class.selected]="!dateTimeClearRequested && draft.minute === minute" [attr.aria-selected]="!dateTimeClearRequested && draft.minute === minute" (click)="selectDraftMinute(minute)">{{ padNumber(minute) }}</button>
+                              @for (minute of visibleMinuteOptions(); track $index) {
+                                @if (minute === null) {
+                                  <span class="time-option-blank" aria-hidden="true"></span>
+                                } @else {
+                                  <button type="button" role="option" [class.selected]="!dateTimeClearRequested && draft.minute === minute" [attr.aria-selected]="!dateTimeClearRequested && draft.minute === minute" (click)="selectDraftMinute(minute)">{{ padNumber(minute) }}</button>
+                                }
                               }
                             </div>
                           </div>
@@ -1377,6 +1385,11 @@ interface DateTimeDraft {
         font: inherit;
         height: 48px;
         width: 100%;
+      }
+
+      .time-option-blank {
+        display: block;
+        height: 48px;
       }
 
       .time-drum button:hover,
@@ -2512,11 +2525,11 @@ export class TaskListNormalMockComponent {
     this.dateTimeClearRequested = false;
   }
 
-  visibleHourOptions(): number[] {
+  visibleHourOptions(): (number | null)[] {
     return this.visibleTimeOptions(this.dateTimeDraft?.hour ?? 0, 24, 1);
   }
 
-  visibleMinuteOptions(): number[] {
+  visibleMinuteOptions(): (number | null)[] {
     return this.visibleTimeOptions(this.dateTimeDraft?.minute ?? 0, 60, 5);
   }
 
@@ -2542,9 +2555,12 @@ export class TaskListNormalMockComponent {
     }
     event.preventDefault();
     const step = part === 'hour' ? 1 : 5;
-    const range = part === 'hour' ? 24 : 60;
+    const maximum = part === 'hour' ? 23 : 55;
     const direction = event.deltaY > 0 ? 1 : -1;
-    const value = (this.dateTimeDraft[part] + direction * step + range) % range;
+    const value = Math.max(0, Math.min(maximum, this.dateTimeDraft[part] + direction * step));
+    if (value === this.dateTimeDraft[part]) {
+      return;
+    }
     this.dateTimeDraft = { ...this.dateTimeDraft, [part]: value };
     this.dateTimeClearRequested = false;
   }
@@ -2935,8 +2951,11 @@ export class TaskListNormalMockComponent {
     return `${date.getFullYear()}-${this.padNumber(date.getMonth() + 1)}-${this.padNumber(date.getDate())}T${this.padNumber(date.getHours())}:${this.padNumber(date.getMinutes())}`;
   }
 
-  private visibleTimeOptions(value: number, range: number, step: number): number[] {
-    return [-2, -1, 0, 1, 2].map((offset) => (value + offset * step + range) % range);
+  private visibleTimeOptions(value: number, range: number, step: number): (number | null)[] {
+    return [-2, -1, 0, 1, 2].map((offset) => {
+      const option = value + offset * step;
+      return option >= 0 && option < range ? option : null;
+    });
   }
 
   private isValidProgress(value: number): boolean {
