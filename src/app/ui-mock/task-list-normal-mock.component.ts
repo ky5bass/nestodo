@@ -2431,7 +2431,11 @@ export class TaskListNormalMockComponent {
       this.closeDateTimePopover();
       return;
     }
-    const initialDate = this.parseEventAt(task.eventAt) ?? this.roundToFiveMinutes(new Date());
+    const storedDate = this.parseEventAt(task.eventAt);
+    const initialDate = storedDate ?? new Date();
+    if (!storedDate) {
+      initialDate.setHours(task.kind === 'todo' ? 18 : 9, 0, 0, 0);
+    }
     this.dateTimeDraft = this.dateToDraft(initialDate);
     this.dateTimeClearRequested = false;
     this.timeWheelAccumulator = { hour: 0, minute: 0 };
