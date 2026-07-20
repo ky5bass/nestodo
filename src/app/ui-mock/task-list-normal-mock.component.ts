@@ -1712,14 +1712,16 @@ interface DateTimeDraft {
       }
 
       .history-button {
-        align-self: center;
+        // align-self: center;
+
         background: #1a2430;
         border: 1px solid #435162;
         border-radius: 6px;
         color: #e8edf2;
         cursor: pointer;
         font: inherit;
-        padding: 6px 10px;
+        margin-top: 4px;
+        padding: 7px 10px;
       }
 
       .addition-mark {
